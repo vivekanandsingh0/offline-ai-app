@@ -107,28 +107,24 @@ export default function ChatScreen() {
     try {
       if (userMsg.content.length > 2000) throw new Error("Input too long.");
 
-      const modelName = activeModel?.name.toLowerCase() || '';
-      const isLlama3 = modelName.includes('llama-3');
+      const modelName = (activeModel?.name || '').toLowerCase();
+      // Robust detection: matches 'llama 3', 'llama-3', 'llama3'
+      const isLlama3 = modelName.includes('llama 3') || modelName.includes('llama-3');
       const isQwen = modelName.includes('qwen');
-      const isMistral = modelName.includes('mistral');
 
       const chatHistory = messages.filter(m => m.id !== 'welcome').slice(-4);
 
       let prompt = '';
 
       if (isLlama3) {
-        // --- POCKETPAL-SPEC LLAMA 3.2 INSTRUCT ---
-        // Header is RE-RENDERED from clean history every time
+        // --- POCKETPAL-SPEC LLAMA 3.2 ---
         prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful, concise assistant.<|eot_id|>`;
-
         chatHistory.forEach(m => {
           prompt += `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`;
         });
-
         prompt += `<|start_header_id|>user<|end_header_id|>\n\n${userMsg.content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
       }
       else if (isQwen) {
-        // --- QWEN 2.5 INSTRUCT SPEC ---
         prompt = `<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n`;
         chatHistory.forEach(m => {
           prompt += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`;
@@ -136,22 +132,30 @@ export default function ChatScreen() {
         prompt += `<|im_start|>user\n${userMsg.content}<|im_end|>\n<|im_start|>assistant\n`;
       }
       else {
-        // --- MISTRAL v0.3 / FALLBACK ---
-        prompt = `<s>[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n`;
+        // --- MISTRAL / GENERIC FALLBACK ---
+        prompt = `<s>[INST] You are a helpful assistant. [/INST] </s>`;
         chatHistory.forEach(m => {
-          if (m.role === 'user') prompt += m.content + " [/INST] ";
-          else prompt += m.content + " </s><s>[INST] ";
+          if (m.role === 'user') prompt += `<s>[INST] ${m.content} [/INST] `;
+          else prompt += `${m.content} </s>`;
         });
-        prompt += `${userMsg.content} [/INST]`;
+        prompt += `<s>[INST] ${userMsg.content} [/INST]`;
       }
 
+      console.log("Feeding prompt family:", isLlama3 ? "Llama3" : (isQwen ? "Qwen" : "Fallback"));
       const response = await OfflineLLMModule.generate(prompt);
 
-      // --- OUTPUT SANITIZATION (PocketPal Spec) ---
+      // --- AGGRESSIVE CLEANUP ---
       let cleanResponse = response.trim();
-      // Remove leaked role markers if they slipped past C++
-      cleanResponse = cleanResponse.replace(/<\|eot_id\|>|<\|start_header_id\|>assistant<\|end_header_id\|>|<\|start_header_id\|>user<\|end_header_id\|>/g, '');
-      cleanResponse = cleanResponse.replace(/^(Assistant:|User:)\s*/i, '').trim();
+      // Remove any hallucinated tags from the response
+      const tagsToRemove = [
+        '<|eot_id|>', '<|start_header_id|>', '<|end_header_id|>',
+        '<s>', '</s>', '[INST]', '[/INST]', '<<SYS>>', '<<sys>>', '<</SYS>>', '<</sys>>',
+        'User:', 'Assistant:', 'user:', 'assistant:'
+      ];
+      tagsToRemove.forEach(tag => {
+        cleanResponse = cleanResponse.split(tag)[0]; // Cut everything after the first tag hallucination
+      });
+      cleanResponse = cleanResponse.trim();
 
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(1) + 's';
