@@ -1,0 +1,11 @@
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\CMakeLists.txt
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\cmake\build-info.cmake
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\cmake\common.cmake
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\cmake\llama-config.cmake.in
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\CMakeLists.txt
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\ggml\cmake\common.cmake
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\ggml\cmake\ggml-config.cmake.in
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\ggml\CMakeLists.txt
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\ggml\src\CMakeLists.txt
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\ggml\src\ggml-cpu\CMakeLists.txt
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\cpp\llama.cpp\src\CMakeLists.txt

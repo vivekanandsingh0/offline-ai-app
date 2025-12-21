@@ -1,0 +1,76 @@
+{
+  "buildFiles": [
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\CMakeLists.txt",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\cmake\\build-info.cmake",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\cmake\\common.cmake",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\cmake\\llama-config.cmake.in",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\CMakeLists.txt",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\ggml\\cmake\\common.cmake",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\ggml\\cmake\\ggml-config.cmake.in",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\ggml\\CMakeLists.txt",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\ggml\\src\\CMakeLists.txt",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\ggml\\src\\ggml-cpu\\CMakeLists.txt",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\cpp\\llama.cpp\\src\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\birba\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\birba\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "ggml-base::@5473b1f4b7e0d7ccc677": {
+      "artifactName": "ggml-base",
+      "abi": "arm64-v8a",
+      "output": "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-base.so",
+      "runtimeFiles": []
+    },
+    "ggml::@5473b1f4b7e0d7ccc677": {
+      "artifactName": "ggml",
+      "abi": "arm64-v8a",
+      "output": "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml.so",
+      "runtimeFiles": [
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-cpu.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-base.so"
+      ]
+    },
+    "offlinellm::@6890427a1f51a3e7e1df": {
+      "artifactName": "offlinellm",
+      "abi": "arm64-v8a",
+      "output": "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\build\\intermediates\\cxx\\Debug\\2g6zr2p1\\obj\\arm64-v8a\\libofflinellm.so",
+      "runtimeFiles": [
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libllama.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-cpu.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-base.so"
+      ]
+    },
+    "llama::@0987acc763771e758701": {
+      "artifactName": "llama",
+      "abi": "arm64-v8a",
+      "output": "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libllama.so",
+      "runtimeFiles": [
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-cpu.so",
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-base.so"
+      ]
+    },
+    "ggml-cpu::@5473b1f4b7e0d7ccc677": {
+      "artifactName": "ggml-cpu",
+      "abi": "arm64-v8a",
+      "output": "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-cpu.so",
+      "runtimeFiles": [
+        "C:\\Vivekanand folder\\offline-ai-app\\native\\OfflineLLMModule\\android\\.cxx\\Debug\\2g6zr2p1\\arm64-v8a\\bin\\libggml-base.so",
+        "C:\\Users\\birba\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\lib\\clang\\18\\lib\\linux\\aarch64\\libomp.so"
+      ]
+    }
+  }
+}

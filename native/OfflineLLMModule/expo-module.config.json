@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["OfflineLLMModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.offlinellmmodule.OfflineLLMModule"]
+  }
+}

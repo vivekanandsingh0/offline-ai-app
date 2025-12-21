@@ -1,0 +1,2 @@
+ninja: Entering directory `C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\.cxx\Debug\2g6zr2p1\x86_64'
+ninja: no work to do.

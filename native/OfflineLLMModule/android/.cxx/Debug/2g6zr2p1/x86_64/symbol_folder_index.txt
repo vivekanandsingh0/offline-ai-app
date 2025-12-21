@@ -1,0 +1,1 @@
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\build\intermediates\cxx\Debug\2g6zr2p1\obj\x86_64
