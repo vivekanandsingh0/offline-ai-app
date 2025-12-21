@@ -46,15 +46,22 @@ export default function ChatScreen() {
     // Add placeholder assistant message
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', content: '', pending: true }]);
 
+    // Listener for streaming tokens
+    const subscription = OfflineLLMModule.addListener('onToken', (event: { token: string }) => {
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMsgId
+          ? { ...msg, content: msg.content + event.token, pending: false }
+          : msg
+      ));
+    });
+
     try {
-      // For now, we use the simple generate Promise. 
-      // The prompt requested streaming, but the NDK bridge implementation I wrote (bridge.cpp) 
-      // currently returns a string. I can update it to stream later.
-      // Also need to wrap prompt in template if needed, e.g. ChatML or Phi format
-      const prompt = `User: ${userMsg.content}\nAssistant:`;
+      // Use TinyLlama / ChatML style template for better results
+      const prompt = `<|user|>\n${userMsg.content}</s>\n<|assistant|>\n`;
 
       const response = await OfflineLLMModule.generate(prompt);
 
+      // Final update to catch anything missed or to signal completion
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMsgId
           ? { ...msg, content: response, pending: false }
@@ -67,6 +74,7 @@ export default function ChatScreen() {
           : msg
       ));
     } finally {
+      subscription.remove();
       setGenerating(false);
     }
   };
