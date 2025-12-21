@@ -13,21 +13,22 @@ static llama_context *ctx = nullptr;
 static llama_sampler *sampler = nullptr;
 static std::atomic<bool> shouldStop(false);
 
+static jclass javaClassRef = nullptr;
+
 // Helper to emit tokens to Kotlin
 void emit_token(JNIEnv *env, const char *token) {
-    jclass clazz = env->FindClass("expo/modules/offlinellmmodule/OfflineLLMModule");
-    if (clazz == nullptr) {
-        LOGE("Could not find OfflineLLMModule class");
+    if (javaClassRef == nullptr) {
+        LOGE("Java class reference is null");
         return;
     }
-    jmethodID method = env->GetStaticMethodID(clazz, "onTokenFromNative", "(Ljava/lang/String;)V");
+    jmethodID method = env->GetStaticMethodID(javaClassRef, "onTokenFromNative", "(Ljava/lang/String;)V");
     if (method == nullptr) {
         LOGE("Could not find onTokenFromNative method");
         return;
     }
     
     jstring jtoken = env->NewStringUTF(token);
-    env->CallStaticVoidMethod(clazz, method, jtoken);
+    env->CallStaticVoidMethod(javaClassRef, method, jtoken);
     env->DeleteLocalRef(jtoken);
 }
 
@@ -42,6 +43,11 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
     if (model) {
         LOGI("Model is already loaded");
         return JNI_TRUE;
+    }
+
+    if (javaClassRef == nullptr) {
+        jclass clazz = env->FindClass("expo/modules/offlinellmmodule/OfflineLLMModule");
+        javaClassRef = (jclass)env->NewGlobalRef(clazz);
     }
 
     const char *path = env->GetStringUTFChars(modelPath, nullptr);

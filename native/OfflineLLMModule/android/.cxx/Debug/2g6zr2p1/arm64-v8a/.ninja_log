@@ -314,3 +314,5 @@
 204391	219704	7879990377165038	cpp/llama.cpp/src/CMakeFiles/llama.dir/models/t5-enc.cpp.o	234ffa7a1210e349
 219716	220898	7879990389071895	bin/libllama.so	755530eee9f252ae
 220899	221478	7879990396082864	../../../../build/intermediates/cxx/Debug/2g6zr2p1/obj/arm64-v8a/libofflinellm.so	43f783beadae85ae
+65	3538	7880003323165285	CMakeFiles/offlinellm.dir/cpp/bridge.cpp.o	e2a6b6565ff5da2d
+3542	3815	7880003326099238	../../../../build/intermediates/cxx/Debug/2g6zr2p1/obj/arm64-v8a/libofflinellm.so	43f783beadae85ae

@@ -43,8 +43,17 @@ class OfflineLLMModule : Module() {
       unloadModelNative()
     }
 
-    AsyncFunction("generate") { prompt: String ->
-      generateNative(prompt)
+    val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    AsyncFunction("generate") { prompt: String, promise: expo.modules.kotlin.Promise ->
+      executor.execute {
+        try {
+          val result = generateNative(prompt)
+          promise.resolve(result)
+        } catch (e: Exception) {
+          promise.reject("ERR_GENERATE", e.message, e)
+        }
+      }
     }
 
     AsyncFunction("stopGeneration") {
