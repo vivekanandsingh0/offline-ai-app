@@ -2,17 +2,54 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
+import { useChatStore } from '../../store/useChatStore';
+import { AppLanguage, AppTheme, useUserStore } from '../../store/useUserStore';
 
 export default function SettingsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
+    const { theme: appTheme, language, setTheme, setLanguage } = useUserStore();
+    const { startNewSession, saveCurrentSession, deleteSession, sessions } = useChatStore();
+
     const [advancedOpen, setAdvancedOpen] = useState(false);
 
-    const SettingItem = ({ icon, label, value, type = 'chevron' }: any) => (
-        <TouchableOpacity style={styles.item}>
+    const toggleTheme = () => {
+        const next: AppTheme = appTheme === 'system' ? 'light' : appTheme === 'light' ? 'dark' : 'system';
+        setTheme(next);
+    };
+
+    const toggleLanguage = () => {
+        const langs: AppLanguage[] = ['English', 'Hindi', 'Spanish', 'French'];
+        const nextIdx = (langs.indexOf(language) + 1) % langs.length;
+        setLanguage(langs[nextIdx]);
+    };
+
+    const handleClearHistory = () => {
+        Alert.alert(
+            "Clear History",
+            "Are you sure you want to delete all chat history? This cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete All",
+                    style: "destructive",
+                    onPress: async () => {
+                        // Delete all sessions
+                        for (const s of sessions) {
+                            await deleteSession(s.id);
+                        }
+                        startNewSession(); // Reset current
+                    }
+                }
+            ]
+        );
+    };
+
+    const SettingItem = ({ icon, label, value, type = 'chevron', onPress }: any) => (
+        <TouchableOpacity style={styles.item} onPress={onPress} disabled={!onPress && type !== 'switch'}>
             <View style={styles.itemLeft}>
                 <View style={[styles.iconBox, { backgroundColor: theme.card }]}>
                     <Ionicons name={icon} size={20} color={theme.text} />
@@ -42,9 +79,19 @@ export default function SettingsScreen() {
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Preferences</Text>
                 <View style={[styles.card, { backgroundColor: theme.card }]}>
-                    <SettingItem icon="moon-outline" label="Appearance" value="System" />
+                    <SettingItem
+                        icon="moon-outline"
+                        label="Appearance"
+                        value={appTheme ? appTheme.charAt(0).toUpperCase() + appTheme.slice(1) : 'System'}
+                        onPress={toggleTheme}
+                    />
                     <SettingItem icon="notifications-outline" label="Notifications" />
-                    <SettingItem icon="language-outline" label="Language" value="English" />
+                    <SettingItem
+                        icon="language-outline"
+                        label="Language"
+                        value={language}
+                        onPress={toggleLanguage}
+                    />
                 </View>
             </View>
 
@@ -61,7 +108,11 @@ export default function SettingsScreen() {
                 <View style={[styles.card, { backgroundColor: theme.card }]}>
                     <SettingItem icon="shield-checkmark-outline" label="Privacy Policy" />
                     <SettingItem icon="document-text-outline" label="Terms of Service" />
-                    <SettingItem icon="trash-outline" label="Clear Chat History" />
+                    <SettingItem
+                        icon="trash-outline"
+                        label="Clear Chat History"
+                        onPress={handleClearHistory}
+                    />
                 </View>
             </View>
 

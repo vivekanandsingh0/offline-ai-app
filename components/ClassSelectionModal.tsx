@@ -54,6 +54,12 @@ export default function ClassSelectionModal({ visible, onClose }: Props) {
             <View style={[styles.container, { backgroundColor: theme.background }]}>
                 <View style={[styles.content, { backgroundColor: theme.background }]}>
                     <View style={styles.header}>
+                        {/* Close button if manual mode */}
+                        {(visible || onboardingCompleted) && (
+                            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                                <Ionicons name="close-circle" size={28} color={theme.secondaryText} />
+                            </TouchableOpacity>
+                        )}
                         <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
                             <Ionicons name="school-outline" size={32} color={theme.primary} />
                         </View>
@@ -122,6 +128,14 @@ const styles = StyleSheet.create({
     header: {
         alignItems: 'center',
         marginBottom: Spacing.xl,
+        position: 'relative', // For absolute positioning of close button if needed, but let's stick to flex/flow or absolute
+    },
+    closeButton: {
+        position: 'absolute',
+        top: -20,
+        right: 0,
+        zIndex: 10,
+        padding: 4,
     },
     iconCircle: {
         width: 64,

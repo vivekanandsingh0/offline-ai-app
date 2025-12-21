@@ -16,10 +16,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import ChatHistoryModal from '../../components/ChatHistoryModal'; // Added
 import ClassSelectionModal from '../../components/ClassSelectionModal';
 import ToolSelector from '../../components/ToolSelector';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
 import { ToolId } from '../../constants/ToolDefinitions';
+import { useChatStore } from '../../store/useChatStore'; // Added
 import { useModelStore } from '../../store/useModelStore';
 import { useUserStore } from '../../store/useUserStore';
 import { buildPrompt } from '../../utils/PromptBuilder';
@@ -59,17 +61,47 @@ export default function ChatScreen() {
   const [showCapabilityMenu, setShowCapabilityMenu] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   const [showClassModal, setShowClassModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false); // Added
   const router = useRouter();
 
   const flatListRef = useRef<FlatList>(null);
 
+  // Chat Store Hooks
+  const saveCurrentSession = useChatStore(s => s.saveCurrentSession);
+  const startNewSession = useChatStore(s => s.startNewSession);
+  const loadSession = useChatStore(s => s.loadSession);
+  const currentSessionId = useChatStore(s => s.currentSessionId);
+
   const clearChat = () => {
+    startNewSession(); // Reset session in store
     setMessages([{
       id: 'welcome',
       role: 'assistant',
       content: `Hello! I'm using ${activeModelName || 'the model'}. How can I help you today?`,
       metadata: { source: 'Local' }
     }]);
+  };
+
+  // Auto-save chat when messages change
+  useEffect(() => {
+    if (messages.length > 0 && messages.some(m => m.id !== 'welcome')) {
+      const msgsToSave = messages.filter(m => !m.pending && m.id !== 'welcome');
+      if (msgsToSave.length > 0) {
+        saveCurrentSession(msgsToSave);
+      }
+    }
+  }, [messages]);
+
+  const handleHistorySelect = (loadedMsgs: any[]) => {
+    // We receive strict Message[] from the modal but need to cast for state compatibility if types diverge
+    if (loadedMsgs && loadedMsgs.length > 0) {
+      // Add 'pending' and 'metadata' fields if missing to match Component State Message type
+      const formatted: Message[] = loadedMsgs.map(m => ({
+        ...m,
+        pending: false, // History items are never pending
+      }));
+      setMessages(formatted);
+    }
   };
 
   useEffect(() => {
@@ -279,14 +311,24 @@ export default function ChatScreen() {
             </TouchableOpacity>
             {activeModelId ? (
               <TouchableOpacity onPress={clearChat}>
-                <Ionicons name="trash-outline" size={22} color={theme.secondaryText} />
+                <Ionicons name="add" size={26} color={theme.text} />
               </TouchableOpacity>
             ) : null}
           </View>
         ),
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={{ marginLeft: 16 }}>
+            <Ionicons name="time-outline" size={24} color={theme.text} />
+          </TouchableOpacity>
+        ),
       }} />
 
       <ClassSelectionModal visible={showClassModal} onClose={() => setShowClassModal(false)} />
+      <ChatHistoryModal
+        visible={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        onSelectSession={handleHistorySelect}
+      />
 
       {!activeModelId ? (
         <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
