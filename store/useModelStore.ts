@@ -29,20 +29,28 @@ export type LocalModel = Model & {
 // Hardcoded catalog for demo
 const CATALOG: Model[] = [
     {
-        id: 'tinyllama-1.1b-chat',
-        name: 'TinyLlama 1.1B Chat',
-        url: 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-        filename: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-        size: '638 MB',
-        description: 'A small, fast model suitable for basic chat.'
+        id: 'mistral-7b-v0.3',
+        name: 'Mistral 7B v0.3 (Slot 1)',
+        url: 'https://huggingface.co/bartowski/Mistral-7B-v0.3-Instruct-GGUF/resolve/main/Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
+        filename: 'Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
+        size: '4.4 GB',
+        description: 'Best speed/quality ratio. Uses Grouped-Query Attention for mobile efficiency.'
     },
     {
-        id: 'phi-2',
-        name: 'Phi-2',
-        url: 'https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf',
-        filename: 'phi-2.Q4_K_M.gguf',
-        size: '1.7 GB',
-        description: 'Microsoft Phi-2, great reasoning capabilities for its size.'
+        id: 'llama-3.2-3b',
+        name: 'Llama 3.2 3B (Slot 2)',
+        url: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
+        filename: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
+        size: '2.0 GB',
+        description: 'Perfect for low-mid range phones. Fast inference with high intelligence.'
+    },
+    {
+        id: 'qwen-2.5-1.5b',
+        name: 'Qwen 2.5 1.5B (Fast Test)',
+        url: 'https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
+        filename: 'Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
+        size: '1.0 GB',
+        description: 'Ultra-lightweight model for testing and old phones.'
     }
 ];
 
@@ -89,7 +97,8 @@ export const useModelStore = create<ModelStore>((set, get) => ({
         for (const model of CATALOG) {
             const path = MODELS_DIR + model.filename;
             const fileInfo = await FileSystem.getInfoAsync(path);
-            if (fileInfo.exists) {
+            // GGUF models are always > 10MB. If smaller, it's likely a 404/Error page.
+            if (fileInfo.exists && fileInfo.size > 10 * 1024 * 1024) {
                 localModels[model.id] = {
                     ...model,
                     localPath: path,
@@ -148,6 +157,12 @@ export const useModelStore = create<ModelStore>((set, get) => ({
         try {
             const result = await downloadResumable.downloadAsync();
             if (result) {
+                // Verify file actually contains data (avoiding empty/error files)
+                const fileInfo = await FileSystem.getInfoAsync(result.uri);
+                if (fileInfo.exists && fileInfo.size < 1024 * 1024) { // Less than 1MB is almost certainly an error page
+                    throw new Error('Downloaded file is too small. The link might be expired.');
+                }
+
                 set(state => {
                     const newResumables = { ...state.downloadResumables };
                     delete newResumables[model.id];

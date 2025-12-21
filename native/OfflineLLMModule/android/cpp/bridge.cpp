@@ -67,9 +67,9 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
     }
 
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = 512; // Reduced for faster processing on mobile
-    ctx_params.n_batch = 512;
-    ctx_params.n_threads = 4; // Use 4 threads for faster inference
+    ctx_params.n_ctx = 512; // Smaller context = significantly faster pre-fill
+    ctx_params.n_batch = 256; 
+    ctx_params.n_threads = 4; // 4 is stable; 6-8 can cause overheating
     ctx_params.n_threads_batch = 4;
     
     ctx = llama_init_from_model(model, ctx_params);
@@ -85,14 +85,14 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
     llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
     sampler = llama_sampler_chain_init(sparams);
     
-    // Add repetition penalty (Last 64 tokens, penalty=1.1)
+    // Optimized for speed and coherence on mobile
     llama_sampler_chain_add(sampler, llama_sampler_init_penalties(64, 1.1f, 0.0f, 0.0f));
-    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.7f));
-    llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40));
-    llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.95f, 1));
+    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.6f));
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_k(30));
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.90f, 1));
     llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234));
 
-    LOGI("Model loaded successfully with 4 threads and 512 context");
+    LOGI("Model loaded successfully with 4 threads and 1024 context");
     return JNI_TRUE;
 }
 
@@ -188,6 +188,7 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     
     LOGI("Starting generation loop with streaming");
     while (n_decode < max_new_tokens) {
+        if (n_decode % 10 == 0) LOGI("Heartbeat: generated %d tokens", n_decode);
         if (shouldStop) {
             LOGI("Generation interrupted by user");
             break;
