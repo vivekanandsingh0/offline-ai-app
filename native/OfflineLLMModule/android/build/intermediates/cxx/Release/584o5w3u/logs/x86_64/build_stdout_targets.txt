@@ -1,0 +1,3 @@
+ninja: Entering directory `C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\.cxx\Release\584o5w3u\x86_64'
+[1/2] Building CXX object CMakeFiles/offlinellm.dir/cpp/bridge.cpp.o
+[2/2] Linking CXX shared library ..\..\..\..\build\intermediates\cxx\Release\584o5w3u\obj\x86_64\libofflinellm.so

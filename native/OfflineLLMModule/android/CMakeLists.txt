@@ -4,6 +4,12 @@ project(offlinellm)
 
 set(NAME offlinellm)
 
+# Force Release build and enable NEON for Android ARM speed
+set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+set(GGML_NEON ON CACHE BOOL "" FORCE)
+set(GGML_F16C ON CACHE BOOL "" FORCE)
+set(GGML_FMA ON CACHE BOOL "" FORCE)
+
 # Configure llama.cpp build options
 set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)

@@ -1,0 +1,1 @@
+C:\Vivekanand folder\offline-ai-app\native\OfflineLLMModule\android\build\intermediates\cxx\Release\584o5w3u\obj\arm64-v8a

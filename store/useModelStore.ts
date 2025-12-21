@@ -30,27 +30,27 @@ export type LocalModel = Model & {
 const CATALOG: Model[] = [
     {
         id: 'mistral-7b-v0.3',
-        name: 'Mistral 7B v0.3 (Slot 1)',
+        name: 'Mistral 7B v0.3 Instruct (Slot 1)',
         url: 'https://huggingface.co/bartowski/Mistral-7B-v0.3-Instruct-GGUF/resolve/main/Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
         filename: 'Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
         size: '4.4 GB',
-        description: 'Best speed/quality ratio. Uses Grouped-Query Attention for mobile efficiency.'
+        description: 'Best speed/quality ratio. Instruction-tuned for precise chat following.'
     },
     {
         id: 'llama-3.2-3b',
-        name: 'Llama 3.2 3B (Slot 2)',
+        name: 'Llama 3.2 3B Instruct (Slot 2)',
         url: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         filename: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         size: '2.0 GB',
-        description: 'Perfect for low-mid range phones. Fast inference with high intelligence.'
+        description: 'Meta\'s latest instruction-tuned model for mobile. Very coherent.'
     },
     {
         id: 'qwen-2.5-1.5b',
-        name: 'Qwen 2.5 1.5B (Fast Test)',
+        name: 'Qwen 2.5 1.5B Instruct (Fast Test)',
         url: 'https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
         filename: 'Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
         size: '1.0 GB',
-        description: 'Ultra-lightweight model for testing and old phones.'
+        description: 'Ultra-lightweight instruction model for testing coherence.'
     }
 ];
 
@@ -64,6 +64,7 @@ interface ModelStore {
     startDownload: (model: Model) => Promise<void>;
     pauseDownload: (modelId: string) => Promise<void>;
     resumeDownload: (modelId: string) => Promise<void>;
+    cancelDownload: (modelId: string) => Promise<void>;
     deleteModel: (modelId: string) => Promise<void>;
     loadModel: (modelId: string) => Promise<void>;
     unloadModel: () => void;
@@ -197,11 +198,109 @@ export const useModelStore = create<ModelStore>((set, get) => ({
     },
 
     pauseDownload: async (modelId) => {
-        // Implementation for pause
+        const { downloadResumables } = get();
+        const resumable = downloadResumables[modelId];
+        if (resumable) {
+            try {
+                await resumable.pauseAsync();
+                set(state => ({
+                    localModels: {
+                        ...state.localModels,
+                        [modelId]: {
+                            ...state.localModels[modelId],
+                            downloadStatus: 'paused'
+                        }
+                    }
+                }));
+            } catch (e) {
+                console.error('Pause failed:', e);
+            }
+        }
     },
 
     resumeDownload: async (modelId) => {
-        // Implementation for resume
+        const { downloadResumables, localModels } = get();
+        const resumable = downloadResumables[modelId];
+        if (resumable) {
+            set(state => ({
+                localModels: {
+                    ...state.localModels,
+                    [modelId]: {
+                        ...state.localModels[modelId],
+                        downloadStatus: 'downloading'
+                    }
+                }
+            }));
+
+            try {
+                const result = await resumable.resumeAsync();
+                if (result) {
+                    // Success handling similar to startDownload
+                    const fileInfo = await FileSystem.getInfoAsync(result.uri);
+                    if (fileInfo.exists && fileInfo.size < 10 * 1024 * 1024) {
+                        throw new Error('Downloaded file is too small.');
+                    }
+
+                    set(state => {
+                        const newResumables = { ...state.downloadResumables };
+                        delete newResumables[modelId];
+                        return {
+                            downloadResumables: newResumables,
+                            localModels: {
+                                ...state.localModels,
+                                [modelId]: {
+                                    ...state.localModels[modelId],
+                                    downloadStatus: 'completed',
+                                    progress: 1,
+                                    localPath: result.uri
+                                }
+                            }
+                        };
+                    });
+                }
+            } catch (e) {
+                console.error('Resume failed:', e);
+                set(state => ({
+                    localModels: {
+                        ...state.localModels,
+                        [modelId]: {
+                            ...state.localModels[modelId],
+                            downloadStatus: 'error'
+                        }
+                    }
+                }));
+            }
+        }
+    },
+
+    cancelDownload: async (modelId: string) => {
+        const { downloadResumables, localModels } = get();
+        const resumable = downloadResumables[modelId];
+        if (resumable) {
+            try {
+                await resumable.pauseAsync(); // Pause first to stop the request
+            } catch (e) { }
+
+            set(state => {
+                const newResumables = { ...state.downloadResumables };
+                delete newResumables[modelId];
+
+                const newLocalModels = { ...state.localModels };
+                delete newLocalModels[modelId];
+
+                return {
+                    downloadResumables: newResumables,
+                    localModels: newLocalModels
+                };
+            });
+
+            // Delete partial file
+            const model = CATALOG.find(m => m.id === modelId);
+            if (model) {
+                const path = MODELS_DIR + model.filename;
+                await FileSystem.deleteAsync(path, { idempotent: true });
+            }
+        }
     },
 
     deleteModel: async (modelId) => {

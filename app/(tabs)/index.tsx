@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
+import { useKeepAwake } from 'expo-keep-awake';
 import { Stack } from 'expo-router';
 import OfflineLLMModule from 'offline-llm-module';
 import React, { useEffect, useRef, useState } from 'react';
@@ -32,6 +33,7 @@ type Message = {
 type Capability = 'Fast' | 'Balanced' | 'Accurate';
 
 export default function ChatScreen() {
+  useKeepAwake(); // PocketPal principle: Keep screen alive during inference
   const { activeModelId, localModels } = useModelStore();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
@@ -44,6 +46,15 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const activeModel = activeModelId ? localModels[activeModelId] : null;
+
+  const clearChat = () => {
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: `Hello! I'm using ${activeModel?.name || 'the model'}. How can I help you today?`,
+      metadata: { source: 'Local' }
+    }]);
+  };
 
   useEffect(() => {
     if (activeModel) {
@@ -72,34 +83,82 @@ export default function ChatScreen() {
     const assistantMsgId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', content: '', pending: true }]);
 
+    let tokenBuffer = '';
+    let lastUpdateTime = Date.now();
+    const UPDATE_INTERVAL = 150; // PocketPal's recommended interval
+
     const subscription = OfflineLLMModule.addListener('onToken', (event: { token: string }) => {
-      setMessages(prev => prev.map(msg =>
-        msg.id === assistantMsgId
-          ? { ...msg, content: msg.content + event.token, pending: false }
-          : msg
-      ));
+      tokenBuffer += event.token;
+
+      const now = Date.now();
+      if (now - lastUpdateTime > UPDATE_INTERVAL) {
+        const currentBuffer = tokenBuffer;
+        tokenBuffer = '';
+        lastUpdateTime = now;
+
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantMsgId
+            ? { ...msg, content: msg.content + currentBuffer, pending: false }
+            : msg
+        ));
+      }
     });
 
     try {
-      // Use the correct template based on the model family
-      const isLlama3 = activeModel?.name.toLowerCase().includes('llama-3');
+      if (userMsg.content.length > 2000) throw new Error("Input too long.");
+
+      const modelName = activeModel?.name.toLowerCase() || '';
+      const isLlama3 = modelName.includes('llama-3');
+      const isQwen = modelName.includes('qwen');
+      const isMistral = modelName.includes('mistral');
+
+      const chatHistory = messages.filter(m => m.id !== 'welcome').slice(-4);
 
       let prompt = '';
+
       if (isLlama3) {
-        prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userMsg.content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
-      } else {
-        // Fallback for Mistral / TinyLlama
-        prompt = `<s>[INST] ${userMsg.content} [/INST]`;
+        // --- POCKETPAL-SPEC LLAMA 3.2 INSTRUCT ---
+        // Header is RE-RENDERED from clean history every time
+        prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful, concise assistant.<|eot_id|>`;
+
+        chatHistory.forEach(m => {
+          prompt += `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`;
+        });
+
+        prompt += `<|start_header_id|>user<|end_header_id|>\n\n${userMsg.content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
+      }
+      else if (isQwen) {
+        // --- QWEN 2.5 INSTRUCT SPEC ---
+        prompt = `<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n`;
+        chatHistory.forEach(m => {
+          prompt += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`;
+        });
+        prompt += `<|im_start|>user\n${userMsg.content}<|im_end|>\n<|im_start|>assistant\n`;
+      }
+      else {
+        // --- MISTRAL v0.3 / FALLBACK ---
+        prompt = `<s>[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n`;
+        chatHistory.forEach(m => {
+          if (m.role === 'user') prompt += m.content + " [/INST] ";
+          else prompt += m.content + " </s><s>[INST] ";
+        });
+        prompt += `${userMsg.content} [/INST]`;
       }
 
       const response = await OfflineLLMModule.generate(prompt);
+
+      // --- OUTPUT SANITIZATION (PocketPal Spec) ---
+      let cleanResponse = response.trim();
+      // Remove leaked role markers if they slipped past C++
+      cleanResponse = cleanResponse.replace(/<\|eot_id\|>|<\|start_header_id\|>assistant<\|end_header_id\|>|<\|start_header_id\|>user<\|end_header_id\|>/g, '');
+      cleanResponse = cleanResponse.replace(/^(Assistant:|User:)\s*/i, '').trim();
 
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(1) + 's';
 
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMsgId
-          ? { ...msg, content: response, pending: false, metadata: { time: duration, source: 'Local' } }
+          ? { ...msg, content: cleanResponse, pending: false, metadata: { time: duration, source: 'Local' } }
           : msg
       ));
     } catch (e) {
@@ -116,6 +175,7 @@ export default function ChatScreen() {
 
   const handleStop = async () => {
     if (generating) {
+      console.log("Stopping AI generation...");
       await OfflineLLMModule.stopGeneration();
     }
   };
@@ -154,6 +214,11 @@ export default function ChatScreen() {
         headerShown: true,
         headerStyle: { backgroundColor: theme.background },
         headerShadowVisible: false,
+        headerRight: () => (
+          <TouchableOpacity onPress={clearChat} style={{ marginRight: 16 }}>
+            <Ionicons name="trash-outline" size={22} color={theme.secondaryText} />
+          </TouchableOpacity>
+        ),
       }} />
 
       <FlatList

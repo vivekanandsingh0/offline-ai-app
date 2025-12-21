@@ -7,7 +7,7 @@ import { BorderRadius, Colors, Spacing } from '../../constants/theme';
 import { Model, useModelStore } from '../../store/useModelStore';
 
 export default function HostScreen() {
-    const { catalog, localModels, initialize, startDownload, deleteModel, loadModel, unloadModel, activeModelId } = useModelStore();
+    const { catalog, localModels, initialize, startDownload, deleteModel, loadModel, unloadModel, activeModelId, pauseDownload, resumeDownload, cancelDownload } = useModelStore();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
@@ -23,6 +23,7 @@ export default function HostScreen() {
         const localModel = localModels[item.id];
         const isDownloaded = !!localModel && localModel.downloadStatus === 'completed';
         const isDownloading = !!localModel && localModel.downloadStatus === 'downloading';
+        const isPaused = !!localModel && localModel.downloadStatus === 'paused';
         const isActive = activeModelId === item.id;
 
         return (
@@ -59,14 +60,28 @@ export default function HostScreen() {
                                 <Ionicons name="trash-outline" size={20} color={theme.error} />
                             </TouchableOpacity>
                         </>
-                    ) : isDownloading ? (
+                    ) : (isDownloading || isPaused) ? (
                         <View style={styles.progressContainer}>
                             <View style={[styles.progressBarBase, { backgroundColor: theme.border }]}>
-                                <View style={[styles.progressBarFill, { width: `${(localModel?.progress || 0) * 100}%`, backgroundColor: theme.primary }]} />
+                                <View style={[styles.progressBarFill, { width: `${(localModel?.progress || 0) * 100}%`, backgroundColor: isPaused ? theme.secondaryText : theme.primary }]} />
                             </View>
-                            <Text style={[styles.progressText, { color: theme.primary }]}>
+                            <Text style={[styles.progressText, { color: theme.text }]}>
                                 {Math.round((localModel?.progress || 0) * 100)}%
                             </Text>
+                            <View style={styles.downloadControls}>
+                                <TouchableOpacity
+                                    onPress={() => isPaused ? resumeDownload(item.id) : pauseDownload(item.id)}
+                                    style={[styles.smallIconButton, { backgroundColor: theme.primary + '15' }]}
+                                >
+                                    <Ionicons name={isPaused ? "play" : "pause"} size={18} color={theme.primary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => cancelDownload(item.id)}
+                                    style={[styles.smallIconButton, { backgroundColor: theme.error + '15' }]}
+                                >
+                                    <Ionicons name="close" size={20} color={theme.error} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     ) : (
                         <TouchableOpacity style={[styles.downloadButton, { backgroundColor: theme.primary }]} onPress={() => startDownload(item)}>
@@ -323,5 +338,16 @@ const styles = StyleSheet.create({
     ruleText: {
         fontSize: 15,
         fontWeight: '500',
+    },
+    downloadControls: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    smallIconButton: {
+        width: 32,
+        height: 32,
+        borderRadius: BorderRadius.sm,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
