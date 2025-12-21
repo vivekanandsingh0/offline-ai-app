@@ -48,11 +48,7 @@ class OfflineLLMModule : Module() {
     }
   }
 
-  companion object {
-    init {
-      System.loadLibrary("offlinellm")
-    }
-  }
+
 
   external fun loadModelNative(modelPath: String): Boolean
   external fun unloadModelNative()

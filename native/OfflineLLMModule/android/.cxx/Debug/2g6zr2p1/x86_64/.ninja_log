@@ -154,3 +154,5 @@
 161711	172506	7877670208769398	cpp/llama.cpp/src/CMakeFiles/llama.dir/models/graph-context-mamba.cpp.o	850269d9c53303c
 172508	175500	7877670231624213	bin/libllama.so	ab807ce84a987991
 175502	177531	7877670258421435	../../../../build/intermediates/cxx/Debug/2g6zr2p1/obj/x86_64/libofflinellm.so	598113279e9e81ae
+17	3501	7879967367313253	CMakeFiles/offlinellm.dir/cpp/bridge.cpp.o	4951b085d5665817
+3502	4951	7879967381993792	../../../../build/intermediates/cxx/Debug/2g6zr2p1/obj/x86_64/libofflinellm.so	598113279e9e81ae
