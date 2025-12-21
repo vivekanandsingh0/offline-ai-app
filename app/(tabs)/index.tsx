@@ -1,11 +1,11 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
-import { useKeepAwake } from 'expo-keep-awake';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import OfflineLLMModule from 'offline-llm-module';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -16,8 +16,14 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import ClassSelectionModal from '../../components/ClassSelectionModal';
+import ToolSelector from '../../components/ToolSelector';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
+import { ToolId } from '../../constants/ToolDefinitions';
 import { useModelStore } from '../../store/useModelStore';
+import { useUserStore } from '../../store/useUserStore';
+import { buildPrompt } from '../../utils/PromptBuilder';
+import { cacheResponse, getCachedResponse } from '../../utils/ResponseCache';
 
 type Message = {
   id: string;
@@ -33,8 +39,16 @@ type Message = {
 type Capability = 'Fast' | 'Balanced' | 'Accurate';
 
 export default function ChatScreen() {
-  useKeepAwake(); // PocketPal principle: Keep screen alive during inference
-  const { activeModelId, localModels } = useModelStore();
+  console.log("Rendering ChatScreen...");
+  // useKeepAwake(); // PocketPal principle: Keep screen alive during inference
+
+  // Use specific selectors to avoid unnecessary re-renders
+  const activeModelId = useModelStore(s => s.activeModelId);
+  const activeModelName = useModelStore(s => s.activeModelId ? s.localModels[s.activeModelId]?.name : undefined);
+
+  const userClass = useUserStore(s => s.userClass);
+  const initUserStore = useUserStore(s => s.initialize);
+
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
 
@@ -43,33 +57,45 @@ export default function ChatScreen() {
   const [generating, setGenerating] = useState(false);
   const [capability, setCapability] = useState<Capability>('Balanced');
   const [showCapabilityMenu, setShowCapabilityMenu] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const router = useRouter();
 
   const flatListRef = useRef<FlatList>(null);
-  const activeModel = activeModelId ? localModels[activeModelId] : null;
 
   const clearChat = () => {
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm using ${activeModel?.name || 'the model'}. How can I help you today?`,
+      content: `Hello! I'm using ${activeModelName || 'the model'}. How can I help you today?`,
       metadata: { source: 'Local' }
     }]);
   };
 
   useEffect(() => {
-    if (activeModel) {
+    if (activeModelId && activeModelName) {
       if (messages.length === 0) {
         setMessages([{
           id: 'welcome',
           role: 'assistant',
-          content: `Hello! I'm using ${activeModel.name}. How can I help you today?`,
+          content: `Hello! I'm using ${activeModelName}. How can I help you today?`,
           metadata: { source: 'Local' }
         }]);
       }
     } else {
       setMessages([]);
     }
-  }, [activeModelId]);
+  }, [activeModelId, activeModelName]);
+
+  // Initialize user store on mount (guarded)
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (!initRef.current) {
+      console.log("[ChatScreen] Initializing UserStore...");
+      initUserStore();
+      initRef.current = true;
+    }
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || !activeModelId || generating) return;
@@ -107,41 +133,41 @@ export default function ChatScreen() {
     try {
       if (userMsg.content.length > 2000) throw new Error("Input too long.");
 
-      const modelName = (activeModel?.name || '').toLowerCase();
-      // Robust detection: matches 'llama 3', 'llama-3', 'llama3'
-      const isLlama3 = modelName.includes('llama 3') || modelName.includes('llama-3');
-      const isQwen = modelName.includes('qwen');
+      if (userMsg.content.length > 2000) throw new Error("Input too long.");
 
-      const chatHistory = messages.filter(m => m.id !== 'welcome').slice(-4);
+      const modelName = (activeModelName || '').toLowerCase();
+      const chatHistory = messages.filter(m => m.id !== 'welcome').slice(-4).map(m => ({ role: m.role, content: m.content }));
 
-      let prompt = '';
+      // --- CACHE CHECK ---
+      const cacheParams = { userClass, tool: activeTool, input: userMsg.content };
+      const cached = getCachedResponse(cacheParams);
 
-      if (isLlama3) {
-        // --- POCKETPAL-SPEC LLAMA 3.2 ---
-        prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful, concise assistant.<|eot_id|>`;
-        chatHistory.forEach(m => {
-          prompt += `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`;
-        });
-        prompt += `<|start_header_id|>user<|end_header_id|>\n\n${userMsg.content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
-      }
-      else if (isQwen) {
-        prompt = `<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n`;
-        chatHistory.forEach(m => {
-          prompt += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`;
-        });
-        prompt += `<|im_start|>user\n${userMsg.content}<|im_end|>\n<|im_start|>assistant\n`;
-      }
-      else {
-        // --- MISTRAL / GENERIC FALLBACK ---
-        prompt = `<s>[INST] You are a helpful assistant. [/INST] </s>`;
-        chatHistory.forEach(m => {
-          if (m.role === 'user') prompt += `<s>[INST] ${m.content} [/INST] `;
-          else prompt += `${m.content} </s>`;
-        });
-        prompt += `<s>[INST] ${userMsg.content} [/INST]`;
+      if (cached) {
+        console.log("Cache hit! Serving instant response.");
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantMsgId
+            ? {
+              ...msg,
+              content: cached,
+              pending: false,
+              metadata: { time: '0.0s', source: 'Cache' }
+            }
+            : msg
+        ));
+        subscription.remove();
+        setGenerating(false);
+        return;
       }
 
-      console.log("Feeding prompt family:", isLlama3 ? "Llama3" : (isQwen ? "Qwen" : "Fallback"));
+      const prompt = buildPrompt({
+        userClass,
+        activeTool,
+        input: userMsg.content,
+        modelName,
+        history: chatHistory
+      });
+
+      console.log("Feeding prompt to model:", prompt.substring(0, 100) + "...");
       const response = await OfflineLLMModule.generate(prompt);
 
       // --- AGGRESSIVE CLEANUP ---
@@ -165,6 +191,11 @@ export default function ChatScreen() {
           ? { ...msg, content: cleanResponse, pending: false, metadata: { time: duration, source: 'Local' } }
           : msg
       ));
+
+      // --- SAVE TO CACHE ---
+      if (cleanResponse.length > 10) {
+        cacheResponse(cacheParams, cleanResponse);
+      }
     } catch (e) {
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMsgId
@@ -184,20 +215,40 @@ export default function ChatScreen() {
     }
   };
 
-  if (!activeModelId) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
-        <Stack.Screen options={{ title: 'Chat' }} />
-        <View style={[styles.iconCircle, { backgroundColor: theme.card }]}>
-          <Ionicons name="chatbubble-ellipses-outline" size={40} color={theme.primary} />
-        </View>
-        <Text style={[styles.placeholderTitle, { color: theme.text }]}>No Model Loaded</Text>
-        <Text style={[styles.placeholderText, { color: theme.secondaryText }]}>
-          Head over to the Host tab to download and load a model to start chatting.
-        </Text>
-      </View>
-    );
-  }
+  const activeModelIdSelector = useModelStore(s => s.activeModelId);
+  const localModelsSelector = useModelStore(s => s.localModels);
+  const loadModel = useModelStore(s => s.loadModel);
+
+  const handleCapabilitySelect = (cap: Capability) => {
+    setCapability(cap);
+    setShowCapabilityMenu(false);
+
+    let targetModelId = '';
+    if (cap === 'Fast') targetModelId = 'qwen-2.5-3b';
+    else if (cap === 'Balanced') targetModelId = 'llama-3.2-3b';
+    else if (cap === 'Accurate') targetModelId = 'mistral-7b-v0.3';
+
+    const targetModel = localModelsSelector[targetModelId];
+
+    // Check if already active
+    if (activeModelIdSelector === targetModelId) return;
+
+    if (targetModel && targetModel.downloadStatus === 'completed' && targetModel.localPath) {
+      loadModel(targetModelId);
+    } else {
+      Alert.alert(
+        "Model Not Found",
+        `The ${cap} mode requires ${targetModelId}. It is not installed.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Go to Download",
+            onPress: () => router.push('/(tabs)/host')
+          }
+        ]
+      );
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -206,90 +257,117 @@ export default function ChatScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Stack.Screen options={{
+        title: 'Chat',
         headerTitle: () => (
-          <TouchableOpacity
-            style={styles.headerTitleContainer}
-            onPress={() => setShowCapabilityMenu(true)}
-          >
-            <Text style={[styles.headerTitle, { color: theme.text }]}>{capability}</Text>
-            <Ionicons name="chevron-down" size={14} color={theme.secondaryText} style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
+          activeModelId ? (
+            <TouchableOpacity
+              style={styles.headerTitleContainer}
+              onPress={() => setShowCapabilityMenu(true)}
+            >
+              <Text style={[styles.headerTitle, { color: theme.text }]}>{capability}</Text>
+              <Ionicons name="chevron-down" size={14} color={theme.secondaryText} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          ) : <Text style={[styles.headerTitle, { color: theme.text }]}>Chat</Text>
         ),
         headerShown: true,
         headerStyle: { backgroundColor: theme.background },
         headerShadowVisible: false,
         headerRight: () => (
-          <TouchableOpacity onPress={clearChat} style={{ marginRight: 16 }}>
-            <Ionicons name="trash-outline" size={22} color={theme.secondaryText} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 16 }}>
+            <TouchableOpacity onPress={() => setShowClassModal(true)}>
+              <Ionicons name="settings-outline" size={22} color={theme.secondaryText} />
+            </TouchableOpacity>
+            {activeModelId ? (
+              <TouchableOpacity onPress={clearChat}>
+                <Ionicons name="trash-outline" size={22} color={theme.secondaryText} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ),
       }} />
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.list}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        renderItem={({ item }) => (
-          <View style={[
-            styles.msgContainer,
-            item.role === 'user' ? styles.userContainer : styles.assistantContainer
-          ]}>
-            <View style={[
-              styles.msgBubble,
-              item.role === 'user'
-                ? [styles.userBubble, { backgroundColor: theme.bubbleUser }]
-                : [styles.assistantBubble, { backgroundColor: theme.bubbleAssistant }]
-            ]}>
-              <Text style={[
-                styles.msgText,
-                item.role === 'user' ? { color: '#FFF' } : { color: theme.text }
-              ]}>{item.content}</Text>
+      <ClassSelectionModal visible={showClassModal} onClose={() => setShowClassModal(false)} />
 
-              {item.pending && (
-                <View style={styles.pendingIndicator}>
-                  <ActivityIndicator size="small" color={theme.secondaryText} />
+      {!activeModelId ? (
+        <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.card }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={40} color={theme.primary} />
+          </View>
+          <Text style={[styles.placeholderTitle, { color: theme.text }]}>No Model Loaded</Text>
+          <Text style={[styles.placeholderText, { color: theme.secondaryText }]}>
+            Head over to the Host tab to download and load a model to start chatting.
+          </Text>
+        </View>
+      ) : (
+        <>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.list}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            renderItem={({ item }) => (
+              <View style={[
+                styles.msgContainer,
+                item.role === 'user' ? styles.userContainer : styles.assistantContainer
+              ]}>
+                <View style={[
+                  styles.msgBubble,
+                  item.role === 'user'
+                    ? [styles.userBubble, { backgroundColor: theme.bubbleUser }]
+                    : [styles.assistantBubble, { backgroundColor: theme.bubbleAssistant }]
+                ]}>
+                  <Text style={[
+                    styles.msgText,
+                    item.role === 'user' ? { color: '#FFF' } : { color: theme.text }
+                  ]}>{item.content}</Text>
+
+                  {item.pending && (
+                    <View style={styles.pendingIndicator}>
+                      <ActivityIndicator size="small" color={theme.secondaryText} />
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
 
-            {item.metadata && (
-              <View style={[styles.metadataRow, item.role === 'user' && { justifyContent: 'flex-end' }]}>
-                {item.metadata.time && <Text style={styles.metadataText}>{item.metadata.time} • </Text>}
-                <Text style={styles.metadataText}>{item.metadata.source}</Text>
+                {item.metadata && (
+                  <View style={[styles.metadataRow, item.role === 'user' && { justifyContent: 'flex-end' }]}>
+                    {item.metadata.time && <Text style={styles.metadataText}>{item.metadata.time} • </Text>}
+                    <Text style={styles.metadataText}>{item.metadata.source}</Text>
+                  </View>
+                )}
               </View>
             )}
-          </View>
-        )}
-      />
-
-      <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-        <View style={[styles.inputWrapper, { backgroundColor: theme.card }]}>
-          <TextInput
-            style={[styles.input, { color: theme.text }]}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask anything..."
-            placeholderTextColor={theme.secondaryText}
-            multiline
-            editable={!generating}
           />
-          {generating ? (
-            <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-              <Ionicons name="stop" size={20} color={theme.error} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.sendButton, !input.trim() && { opacity: 0.5 }]}
-              onPress={handleSend}
-              disabled={!input.trim()}
-            >
-              <Ionicons name="arrow-up" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+
+          <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+            <ToolSelector activeTool={activeTool} onSelectTool={setActiveTool} />
+            <View style={[styles.inputWrapper, { backgroundColor: theme.card }]}>
+              <TextInput
+                style={[styles.input, { color: theme.text }]}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask anything..."
+                placeholderTextColor={theme.secondaryText}
+                multiline
+                editable={!generating}
+              />
+              {generating ? (
+                <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
+                  <Ionicons name="stop" size={20} color={theme.error} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.sendButton, !input.trim() && { opacity: 0.5 }]}
+                  onPress={handleSend}
+                  disabled={!input.trim()}
+                >
+                  <Ionicons name="arrow-up" size={20} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </>
+      )}
 
       <Modal
         visible={showCapabilityMenu}
@@ -308,7 +386,7 @@ export default function ChatScreen() {
               <TouchableOpacity
                 key={cap}
                 style={styles.modalOption}
-                onPress={() => { setCapability(cap); setShowCapabilityMenu(false); }}
+                onPress={() => handleCapabilitySelect(cap)}
               >
                 <View>
                   <Text style={[styles.optionTitle, { color: theme.text }]}>{cap}</Text>

@@ -1,0 +1,454 @@
+Offline-First AI Study Assistant (Nursery–Class 10)
+
+1. PRODUCT SCOPE (LOCKED)
+What this product IS
+
+A local-only, offline-first AI assistant
+
+Built for school students (Nursery → Class 10)
+
+Optimized for:
+
+Explanations
+
+Notes
+
+Practice
+
+Homework guidance
+
+Designed to work without internet
+
+Uses small local models (Phi-2 default)
+
+What this product is NOT (for now)
+
+❌ General ChatGPT alternative
+
+❌ P2P network
+
+❌ Token / crypto system
+
+❌ Cloud AI replacement
+
+❌ Open-ended creativity app
+
+This scope discipline is critical.
+
+2. HIGH-LEVEL ARCHITECTURE (CURRENT → TARGET)
+Current (you already have)
+UI (Chat)
+  ↓
+Local Prompt
+  ↓
+llama.cpp (single model)
+  ↓
+Response shown
+
+Target (after implementing this doc)
+UI (Chat + Tools)
+  ↓
+Tool Selection
+  ↓
+Class Context
+  ↓
+Prompt Builder (layered)
+  ↓
+Model Selector (auto)
+  ↓
+llama.cpp
+  ↓
+Post-processing & Safety
+  ↓
+Response + Cache
+
+
+We are adding control layers, not rewriting the app.
+
+3. CORE DESIGN PRINCIPLES (DO NOT SKIP)
+
+These principles guide every implementation decision.
+
+Local AI must feel useful, not impressive
+
+Students need predictability, not creativity
+
+Tools > Free chat
+
+Speed perception > raw speed
+
+Safety > intelligence
+
+Control the model, don’t trust it
+
+4. USER FLOW (END-TO-END)
+First Launch Flow
+
+App opens
+
+Ask once:
+
+“Which class are you studying in?”
+
+Store locally:
+
+{
+  "userClass": 6
+}
+
+
+No login. No account.
+
+Daily Usage Flow
+
+Student opens app
+
+Chat screen loads
+
+Tool bar visible above input
+
+Student selects a tool (or none)
+
+Student types input
+
+App builds structured prompt
+
+Local model runs
+
+Response shown
+
+Response cached
+
+5. TOOL SYSTEM (MOST IMPORTANT PART)
+Why tools exist
+
+Local models are:
+
+slower
+
+smaller
+
+weaker at open-ended chat
+
+Tools:
+
+narrow intent
+
+reduce reasoning load
+
+increase accuracy
+
+improve speed perception
+
+Final Tool List (MVP)
+
+You will implement exactly these 5:
+
+Explain Topic
+
+Make Short Notes
+
+Practice Questions
+
+Homework Helper
+
+Simplify / Translate
+
+No more. No less.
+
+Tool Selection UI (already decided)
+
+Tool selector inside chat
+
+One tool active at a time
+
+Tool shown as a pill:
+
+🛠 Explain Topic  [×]
+
+6. CLASS HANDLING SYSTEM (CRITICAL)
+Why class handling matters
+
+Without class control:
+
+wrong depth
+
+wrong language
+
+parent distrust
+
+syllabus violations
+
+Implementation Strategy
+A. Store class once
+userClass = 6
+
+B. Inject class into EVERY prompt
+
+No exceptions.
+
+C. Restrict tools by class
+Tool	Nursery–2	3–5	6–8	9–10
+Explain Topic	✅	✅	✅	✅
+Short Notes	❌	✅	✅	✅
+Practice Questions	❌	✅	✅	✅
+Homework Helper	❌	❌	✅	✅
+Simplify / Translate	✅	✅	✅	✅
+
+This logic lives in code, not the model.
+
+7. MODEL STRATEGY (FINAL)
+Default Model
+
+Phi-2 2.7B Instruct (quantized)
+
+Reason:
+
+Best balance of speed + reasoning
+
+Excellent for educational tasks
+
+Works well with structured prompts
+
+Optional Secondary Models
+
+TinyLlama → ultra-fast fallback
+
+Llama 3.3 3B → “Detailed” mode only
+
+But:
+
+Phi-2 handles 90% of all requests
+
+8. PROMPT ARCHITECTURE (VERY IMPORTANT)
+Prompt is BUILT IN LAYERS
+
+You are not sending one raw prompt.
+
+You are composing it like this:
+
+[BASE SYSTEM PROMPT]
+      +
+[SAFETY PROMPT]
+      +
+[CLASS CONTEXT PROMPT]
+      +
+[TOOL PROMPT]
+      +
+[USER INPUT]
+
+
+This guarantees control.
+
+Prompt Builder (Conceptual)
+finalPrompt =
+  basePrompt +
+  safetyPrompt +
+  classPrompt(userClass) +
+  toolPrompt(activeTool, userClass) +
+  userInput
+
+
+This function is the brain of your app.
+
+9. SAFETY & SECURITY (NON-NEGOTIABLE)
+Topics that must NEVER be answered
+
+Sexual content
+
+Violence
+
+Drugs
+
+Politics
+
+Religion
+
+Medical advice
+
+Self-harm
+
+Handling strategy
+
+Calm refusal
+
+School-appropriate explanation
+
+Suggest parent/teacher
+
+Never say:
+
+“I am not allowed”
+
+Say:
+
+“This topic is not appropriate for school students.”
+
+10. HOMEWORK HELPER (SPECIAL CASE)
+
+This tool has extra rules.
+
+Default behavior
+
+Explain thinking
+
+Give steps
+
+Give hints
+
+NO final answer
+
+Exception
+
+Only if:
+
+Class ≥ 9
+
+User explicitly asks for answer
+
+This protects you from:
+
+School complaints
+
+Parent backlash
+
+11. PERFORMANCE OPTIMIZATION (LOCAL AI REALITY)
+The problem
+
+Local AI is slow sometimes.
+
+The solution
+
+Make it FEEL fast.
+
+Required optimizations
+A. Short default outputs
+
+Limit words. Expand only on demand.
+
+B. Progress messages
+
+“Thinking…”
+
+“Preparing explanation…”
+
+Silence feels broken. Progress feels intentional.
+
+C. Local Caching (VERY IMPORTANT)
+
+Hash key:
+
+(class + tool + subject + input)
+
+
+If cached:
+
+Return instantly
+
+Skip inference
+
+School questions repeat heavily.
+
+12. ERROR & FAILURE HANDLING
+If model output is bad
+
+Do NOT show garbage
+
+Show safe fallback:
+
+“I couldn’t explain this clearly. Try rephrasing or ask a teacher.”
+
+If model hangs
+
+Timeout
+
+Cancel
+
+Retry option
+
+Never freeze UI.
+
+13. WHAT TO IMPLEMENT FIRST (ORDER MATTERS)
+Phase 1 (Must be done)
+
+Tool system in chat
+
+Class selection & storage
+
+Prompt builder with layers
+
+Phi-2 as default model
+
+Phase 2
+
+Safety enforcement
+
+Homework helper restrictions
+
+Tool-class mapping
+
+Phase 3
+
+Caching
+
+Performance UX polish
+
+Edge-case handling
+
+14. WHAT SUCCESS LOOKS LIKE (THIS STAGE)
+
+You are successful if:
+
+A Class 6 student can:
+
+Explain a topic
+
+Make notes
+
+Practice questions
+
+Offline
+
+Safely
+
+Predictably
+
+Without confusion
+
+That alone is a real product.
+
+15. WHAT YOU MUST NOT DO NOW
+
+❌ Add P2P
+
+❌ Add crypto
+
+❌ Add training
+
+❌ Add big models
+
+❌ Add open-ended chat focus
+
+These are future layers, not foundations.
+
+16. FUTURE-PROOFING (JUST FOR CLARITY)
+
+Later (not now), you can add:
+
+P2P as quality boost
+
+GPU nodes as premium
+
+Tokens as incentive
+
+All of that depends on this base being solid.
+
+FINAL WORD (IMPORTANT)
+
+You are no longer “building an AI app”.
+
+You are:
+
+Designing a controlled educational system that uses AI as a tool.
+
+That mindset is why this will work.

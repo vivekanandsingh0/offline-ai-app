@@ -29,28 +29,28 @@ export type LocalModel = Model & {
 // Hardcoded catalog for demo
 const CATALOG: Model[] = [
     {
-        id: 'mistral-7b-v0.3',
-        name: 'Mistral 7B v0.3 Instruct (Slot 1)',
-        url: 'https://huggingface.co/bartowski/Mistral-7B-v0.3-Instruct-GGUF/resolve/main/Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
-        filename: 'Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
-        size: '4.4 GB',
-        description: 'Best speed/quality ratio. Instruction-tuned for precise chat following.'
-    },
-    {
         id: 'llama-3.2-3b',
-        name: 'Llama 3.2 3B Instruct (Slot 2)',
+        name: 'Llama 3.2 3B Instruct (Balanced)',
         url: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         filename: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         size: '2.0 GB',
-        description: 'Meta\'s latest instruction-tuned model for mobile. Very coherent.'
+        description: 'Default. Best for Explain, Notes, and Homework. (Class 5-10)'
     },
     {
-        id: 'qwen-2.5-1.5b',
-        name: 'Qwen 2.5 1.5B Instruct (Fast Test)',
-        url: 'https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
-        filename: 'Qwen2.5-1.5B-Instruct-Q4_K_M.gguf',
-        size: '1.0 GB',
-        description: 'Ultra-lightweight instruction model for testing coherence.'
+        id: 'qwen-2.5-3b',
+        name: 'Qwen 2.5 3B Instruct (Fast)',
+        url: 'https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf',
+        filename: 'Qwen2.5-3B-Instruct-Q4_K_M.gguf',
+        size: '2.0 GB',
+        description: 'Fastest. Best for simple queries. Recommended for Nursery - Class 4.'
+    },
+    {
+        id: 'mistral-7b-v0.3',
+        name: 'Mistral 7B v0.3 Instruct (Detailed)',
+        url: 'https://huggingface.co/bartowski/Mistral-7B-v0.3-Instruct-GGUF/resolve/main/Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
+        filename: 'Mistral-7B-v0.3-Instruct-Q4_K_M.gguf',
+        size: '4.4 GB',
+        description: 'Detailed Mode. Use only for complex Math/Science (Class 9-10).'
     }
 ];
 
@@ -86,12 +86,18 @@ export const useModelStore = create<ModelStore>((set, get) => ({
             await FileSystem.makeDirectoryAsync(MODELS_DIR);
         }
 
-        // Load existing files
-        // Ideally we persist state in AsyncStorage, but for now we scan directory + simple state
-        // For a real app, use persist middleware
-        // We'll just init from catalog as idle if not found
+        // Load persisted settings
+        let lastActiveModelId: string | null = null;
+        try {
+            const settingsInfo = await FileSystem.getInfoAsync(MODELS_DIR + 'settings.json');
+            if (settingsInfo.exists) {
+                const settings = JSON.parse(await FileSystem.readAsStringAsync(MODELS_DIR + 'settings.json'));
+                lastActiveModelId = settings.activeModelId;
+            }
+        } catch (e) {
+            console.log("No previous settings found");
+        }
 
-        // In a real implementation, we would check the file system for existing models
         const localModels: Record<string, LocalModel> = {};
 
         // Check for each catalog item if it exists on disk
@@ -110,6 +116,23 @@ export const useModelStore = create<ModelStore>((set, get) => ({
         }
 
         set({ localModels });
+
+        // Auto-load last active model if available
+        if (lastActiveModelId && localModels[lastActiveModelId]) {
+            console.log("Restoring last active model:", lastActiveModelId);
+            // We call the internal load logic directly
+            try {
+                const model = localModels[lastActiveModelId];
+                console.log("Loading model via Native Module:", model.localPath);
+                const success = await OfflineLLMModule.loadModel(model.localPath);
+                if (success) {
+                    set({ activeModelId: lastActiveModelId });
+                    console.log("Model restored successfully");
+                }
+            } catch (e) {
+                console.error("Failed to restore active model", e);
+            }
+        }
     },
 
     startDownload: async (model) => {
@@ -316,7 +339,18 @@ export const useModelStore = create<ModelStore>((set, get) => ({
         }
     },
 
-    setActiveModel: (modelId) => set({ activeModelId: modelId }),
+    setActiveModel: async (modelId) => {
+        set({ activeModelId: modelId });
+        // Persist setting
+        try {
+            await FileSystem.writeAsStringAsync(
+                MODELS_DIR + 'settings.json',
+                JSON.stringify({ activeModelId: modelId })
+            );
+        } catch (e) {
+            console.error("Failed to save model settings", e);
+        }
+    },
 
     loadModel: async (modelId) => {
         const { localModels } = get();
@@ -330,7 +364,7 @@ export const useModelStore = create<ModelStore>((set, get) => ({
             console.log("Loading model via Native Module:", model.localPath);
             const success = await OfflineLLMModule.loadModel(model.localPath);
             if (success) {
-                set({ activeModelId: modelId });
+                get().setActiveModel(modelId); // Use wrapper to persist
                 console.log("Model loaded successfully");
             } else {
                 console.error("Failed to load model (native returned false)");
@@ -344,6 +378,14 @@ export const useModelStore = create<ModelStore>((set, get) => ({
         try {
             OfflineLLMModule.unloadModel();
             set({ activeModelId: null });
+            // Should we clear persistence? User said "don't unload on exit",
+            // but explicit unload probably implies clearing.
+            // For now, we'll keep it simple and assume explicit unload clears it.
+            FileSystem.writeAsStringAsync(
+                MODELS_DIR + 'settings.json',
+                JSON.stringify({ activeModelId: null })
+            ).catch(e => console.error(e));
+
             console.log("Model unloaded");
         } catch (e) {
             console.error("Error unloading model:", e);
