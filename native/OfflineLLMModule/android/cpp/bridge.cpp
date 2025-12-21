@@ -11,6 +11,7 @@
 static llama_model *model = nullptr;
 static llama_context *ctx = nullptr;
 static llama_sampler *sampler = nullptr;
+static std::atomic<bool> shouldStop(false);
 
 // Helper to emit tokens to Kotlin
 void emit_token(JNIEnv *env, const char *token) {
@@ -74,13 +75,15 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
         return JNI_FALSE;
     }
 
-    // Initialize sampler: Temp=0.8, Top-K=40, Top-P=0.95
+    // Initialize sampler: Penalties -> Temp -> Top-K -> Top-P -> Dist
     llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
     sampler = llama_sampler_chain_init(sparams);
     
+    // Add repetition penalty (Last 64 tokens, penalty=1.1)
+    llama_sampler_chain_add(sampler, llama_sampler_init_penalties(64, 1.1f, 0.0f, 0.0f));
+    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.7f));
     llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40));
     llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.95f, 1));
-    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.8f));
     llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234));
 
     LOGI("Model loaded successfully with 4 threads and 512 context");
@@ -124,6 +127,7 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     env->ReleaseStringUTFChars(prompt, promptStr);
 
     LOGI("Generating for prompt: %s", prompt_text.c_str());
+    shouldStop = false;
 
     // Clear KV cache for fresh generation
     llama_memory_seq_rm(llama_get_memory(ctx), -1, -1, -1);
@@ -178,6 +182,10 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     
     LOGI("Starting generation loop with streaming");
     while (n_decode < max_new_tokens) {
+        if (shouldStop) {
+            LOGI("Generation interrupted by user");
+            break;
+        }
         // Sample next token
         llama_token new_token_id = llama_sampler_sample(sampler, ctx, -1);
         llama_sampler_accept(sampler, new_token_id);
@@ -220,6 +228,14 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     llama_batch_free(batch);
     
     return env->NewStringUTF(result.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_expo_modules_offlinellmmodule_OfflineLLMModule_stopGenerationNative(
+    JNIEnv *env,
+    jobject thiz
+) {
+    shouldStop = true;
 }
 
 }

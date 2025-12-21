@@ -56,8 +56,8 @@ export default function ChatScreen() {
     });
 
     try {
-      // Use TinyLlama / ChatML style template for better results
-      const prompt = `<|user|>\n${userMsg.content}</s>\n<|assistant|>\n`;
+      // Use TinyLlama / ChatML style template with System message for stability
+      const prompt = `<|system|>\nYou are a helpful assistant.</s>\n<|user|>\n${userMsg.content}</s>\n<|assistant|>\n`;
 
       const response = await OfflineLLMModule.generate(prompt);
 
@@ -76,6 +76,12 @@ export default function ChatScreen() {
     } finally {
       subscription.remove();
       setGenerating(false);
+    }
+  };
+
+  const handleStop = async () => {
+    if (generating) {
+      await OfflineLLMModule.stopGeneration();
     }
   };
 
@@ -123,14 +129,24 @@ export default function ChatScreen() {
           onChangeText={setInput}
           placeholder="Type a message..."
           onSubmitEditing={handleSend}
+          editable={!generating}
         />
-        <TouchableOpacity
-          style={[styles.sendButton, (!input.trim() || generating) && styles.disabledButton]}
-          onPress={handleSend}
-          disabled={!input.trim() || generating}
-        >
-          <Ionicons name="send" size={20} color="white" />
-        </TouchableOpacity>
+        {generating ? (
+          <TouchableOpacity
+            style={[styles.sendButton, { backgroundColor: '#FF3B30' }]}
+            onPress={handleStop}
+          >
+            <Ionicons name="stop" size={20} color="white" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.sendButton, !input.trim() && styles.disabledButton]}
+            onPress={handleSend}
+            disabled={!input.trim()}
+          >
+            <Ionicons name="send" size={20} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
     </KeyboardAvoidingView>
   );

@@ -46,6 +46,10 @@ class OfflineLLMModule : Module() {
     AsyncFunction("generate") { prompt: String ->
       generateNative(prompt)
     }
+
+    AsyncFunction("stopGeneration") {
+      stopGenerationNative()
+    }
   }
 
 
@@ -53,4 +57,5 @@ class OfflineLLMModule : Module() {
   external fun loadModelNative(modelPath: String): Boolean
   external fun unloadModelNative()
   external fun generateNative(prompt: String): String
+  external fun stopGenerationNative()
 }
