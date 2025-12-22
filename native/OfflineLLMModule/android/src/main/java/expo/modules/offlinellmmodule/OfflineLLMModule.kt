@@ -45,10 +45,15 @@ class OfflineLLMModule : Module() {
 
     val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
-    AsyncFunction("generate") { prompt: String, promise: expo.modules.kotlin.Promise ->
+    AsyncFunction("generate") { prompt: String, options: Map<String, Any>?, promise: expo.modules.kotlin.Promise ->
+      val temperature = (options?.get("temperature") as? Number)?.toDouble() ?: 0.7
+      val topK = (options?.get("top_k") as? Number)?.toInt() ?: 40
+      val topP = (options?.get("top_p") as? Number)?.toDouble() ?: 0.9
+      val maxTokens = (options?.get("max_tokens") as? Number)?.toInt() ?: 256
+
       executor.execute {
         try {
-          val result = generateNative(prompt)
+          val result = generateNative(prompt, temperature, topK, topP, maxTokens)
           promise.resolve(result)
         } catch (e: Exception) {
           promise.reject("ERR_GENERATE", e.message, e)
@@ -65,6 +70,6 @@ class OfflineLLMModule : Module() {
 
   external fun loadModelNative(modelPath: String): Boolean
   external fun unloadModelNative()
-  external fun generateNative(prompt: String): String
+  external fun generateNative(prompt: String, temperature: Double, topK: Int, topP: Double, maxTokens: Int): String
   external fun stopGenerationNative()
 }

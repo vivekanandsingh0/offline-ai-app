@@ -16,7 +16,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import ChatHistoryModal from '../../components/ChatHistoryModal'; // Added
+import ChatHistoryModal from '../../components/ChatHistoryModal';
+import ChatSettingsModal, { ChatSettings, DEFAULT_SETTINGS } from '../../components/ChatSettingsModal'; // Added
 import ClassSelectionModal from '../../components/ClassSelectionModal';
 import ToolSelector from '../../components/ToolSelector';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
@@ -61,7 +62,9 @@ export default function ChatScreen() {
   const [showCapabilityMenu, setShowCapabilityMenu] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   const [showClassModal, setShowClassModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false); // Added
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // Added
+  const [chatSettings, setChatSettings] = useState<ChatSettings>(DEFAULT_SETTINGS); // Added
   const router = useRouter();
 
   const flatListRef = useRef<FlatList>(null);
@@ -196,11 +199,19 @@ export default function ChatScreen() {
         activeTool,
         input: userMsg.content,
         modelName,
-        history: chatHistory
+        history: chatHistory,
+        customSystemPrompt: chatSettings.systemPrompt // Added
       });
 
       console.log("Feeding prompt to model:", prompt.substring(0, 100) + "...");
-      const response = await OfflineLLMModule.generate(prompt);
+
+      // Pass generation parameters
+      const response = await OfflineLLMModule.generate(prompt, {
+        temperature: chatSettings.temperature,
+        top_k: chatSettings.top_k,
+        top_p: chatSettings.top_p,
+        max_tokens: chatSettings.max_tokens
+      });
 
       // --- AGGRESSIVE CLEANUP ---
       let cleanResponse = response.trim();
@@ -329,6 +340,12 @@ export default function ChatScreen() {
         onClose={() => setShowHistoryModal(false)}
         onSelectSession={handleHistorySelect}
       />
+      <ChatSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        settings={chatSettings}
+        onUpdateSettings={setChatSettings}
+      />
 
       {!activeModelId ? (
         <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
@@ -384,6 +401,10 @@ export default function ChatScreen() {
           <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
             <ToolSelector activeTool={activeTool} onSelectTool={setActiveTool} />
             <View style={[styles.inputWrapper, { backgroundColor: theme.card }]}>
+              {/* Settings Icon */}
+              <TouchableOpacity onPress={() => setShowSettingsModal(true)} style={styles.settingsIcon}>
+                <Ionicons name="options" size={20} color={theme.secondaryText} />
+              </TouchableOpacity>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
                 value={input}
@@ -448,6 +469,11 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  settingsIcon: {
+    marginBottom: 10,
+    marginRight: 8,
+    padding: 4,
+  },
   container: {
     flex: 1,
   },

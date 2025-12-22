@@ -12,6 +12,7 @@ interface BuildPromptOptions {
     input: string;
     modelName: string;
     history: Message[];
+    customSystemPrompt?: string;
 }
 
 // 5. MASTER SYSTEM PROMPT (LLAMA-OPTIMIZED)
@@ -150,15 +151,16 @@ RULES:
     }
 };
 
-export const buildPrompt = ({ userClass, activeTool, input, modelName, history }: BuildPromptOptions): string => {
+export const buildPrompt = ({ userClass, activeTool, input, modelName, history, customSystemPrompt }: BuildPromptOptions): string => {
     const isLlama3 = modelName.toLowerCase().includes('llama 3') || modelName.toLowerCase().includes('llama-3');
     const isQwen = modelName.toLowerCase().includes('qwen');
     const isTinyLlama = modelName.toLowerCase().includes('tinyllama');
 
     // Construct the System Prompt
-    // Order: Master System -> Safety -> Class Context -> Tool Instructions
+    // LOGIC: If customSystemPrompt is provided, it replaces MASTER_SYSTEM_PROMPT (Persona).
+    // Safety, Class Context, and Tools are ALWAYS appended.
     const systemPromptLines = [
-        MASTER_SYSTEM_PROMPT,
+        customSystemPrompt?.trim() ? customSystemPrompt.trim() : MASTER_SYSTEM_PROMPT,
         HARD_SAFETY_PROMPT,
         getClassContext(userClass),
         getToolPrompt(activeTool, userClass)

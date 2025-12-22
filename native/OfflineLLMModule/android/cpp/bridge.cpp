@@ -88,17 +88,9 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
         return JNI_FALSE;
     }
 
-    // Initialize sampler with user's "Safe Config"
-    llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
-    sampler = llama_sampler_chain_init(sparams);
+    // Sampler is now initialized per-generation in generateNative
     
-    llama_sampler_chain_add(sampler, llama_sampler_init_penalties(64, 1.1f, 0.0f, 0.0f)); 
-    llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.7f)); 
-    llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40));
-    llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.90f, 1));
-    llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234));
-
-    LOGI("Engine: PocketPal Ready (Ctx 1024, Temp 0.7)");
+    LOGI("Engine: PocketPal Ready (Ctx 1024)");
     return JNI_TRUE;
 }
 
@@ -130,7 +122,11 @@ JNIEXPORT jstring JNICALL
 Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     JNIEnv *env,
     jobject thiz,
-    jstring prompt
+    jstring prompt,
+    jdouble temperature,
+    jint top_k,
+    jdouble top_p,
+    jint max_tokens
 ) {
     if (!model || !ctx) {
          LOGE("Model/Context not initialized");
@@ -174,10 +170,20 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
         n_processed += n_batch;
     }
     
+    // Initialize Sampler for this request
+    llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
+    sampler = llama_sampler_chain_init(sparams);
+    
+    llama_sampler_chain_add(sampler, llama_sampler_init_penalties(64, 1.1f, 0.0f, 0.0f)); 
+    llama_sampler_chain_add(sampler, llama_sampler_init_temp((float)temperature)); 
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_k(top_k));
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_p((float)top_p, 1));
+    llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234));
+
     std::string result = "";
     int n_cur = n_tokens_real;
     int n_decode = 0;
-    const int max_new_tokens = 256; 
+    const int max_new_tokens = max_tokens; 
     
     while (n_decode < max_new_tokens) {
         if (shouldStop) break;
@@ -235,6 +241,10 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_generateNative(
     if (final_stop != std::string::npos) {
         result = result.substr(0, final_stop);
     }
+
+    // Cleanup sampler for this request
+    llama_sampler_free(sampler);
+    sampler = nullptr;
 
     return env->NewStringUTF(result.c_str());
 }
