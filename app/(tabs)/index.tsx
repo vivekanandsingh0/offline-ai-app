@@ -43,7 +43,7 @@ type Capability = 'Fast' | 'Balanced' | 'Accurate';
 
 export default function ChatScreen() {
   console.log("Rendering ChatScreen...");
-  // useKeepAwake(); // PocketPal principle: Keep screen alive during inference
+  // useKeepAwake(); // Cortex principle: Keep screen alive during inference
 
   // Use specific selectors to avoid unnecessary re-renders
   const activeModelId = useModelStore(s => s.activeModelId);
@@ -146,7 +146,7 @@ export default function ChatScreen() {
 
     let tokenBuffer = '';
     let lastUpdateTime = Date.now();
-    const UPDATE_INTERVAL = 150; // PocketPal's recommended interval
+    const UPDATE_INTERVAL = 150; // Cortex's recommended interval
 
     const subscription = OfflineLLMModule.addListener('onToken', (event: { token: string }) => {
       tokenBuffer += event.token;

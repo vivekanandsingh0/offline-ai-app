@@ -1,6 +1,6 @@
-# PocketPal AI 🚀
+# Cortex AI 🚀
 
-PocketPal AI is a **fully offline**, privacy-focused AI educational assistant built with **React Native (Expo)**. It runs Large Language Models (LLMs) directly on your Android device using a custom native C++ bridge to **llama.cpp**, ensuring zero data leaves your phone.
+Cortex is a **fully offline**, privacy-focused AI educational assistant built with **React Native (Expo)**. It runs Large Language Models (LLMs) directly on your Android device using a custom native C++ bridge to **llama.cpp**, ensuring zero data leaves your phone.
 
 > **Status**: Active Development (Phase 2 - Feature Complete)
 
@@ -75,8 +75,7 @@ offline-ai-app/
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/your-repo/pocketpal-ai.git
-    cd offline-ai-app
+    cd cortex-app
     ```
 
 2.  **Install dependencies**:

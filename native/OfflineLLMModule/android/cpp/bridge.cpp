@@ -74,7 +74,7 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
     }
 
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = 1024; // Strict PocketPal limit
+    ctx_params.n_ctx = 1024; // Strict Cortex limit
     ctx_params.n_batch = 64; 
     ctx_params.n_threads = 4;
     ctx_params.n_threads_batch = 4;
@@ -90,7 +90,7 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
 
     // Sampler is now initialized per-generation in generateNative
     
-    LOGI("Engine: PocketPal Ready (Ctx 1024)");
+    LOGI("Engine: Cortex Ready (Ctx 1024)");
     return JNI_TRUE;
 }
 

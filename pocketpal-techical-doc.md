@@ -1,12 +1,12 @@
-# PocketPal AI: Technical Documentation 📱🚀
+# Cortex: Technical Documentation 📱🚀
 
-This document provides a detailed overview of the technical architecture, optimization strategies, and hardware-specific techniques used in PocketPal AI to achieve high-speed, local LLM inference on mobile devices.
+This document provides a detailed overview of the technical architecture, optimization strategies, and hardware-specific techniques used in Cortex to achieve high-speed, local LLM inference on mobile devices.
 
 ---
 
 ## 🏗️ 1. Core Architecture & Tech Stack
 
-PocketPal AI is designed for high-performance native-to-javascript communication, ensuring that the heavy lifting of AI inference does not freeze the user interface.
+Cortex is designed for high-performance native-to-javascript communication, ensuring that the heavy lifting of AI inference does not freeze the user interface.
 
 | Component | Technology | Rationale |
 | :--- | :--- | :--- |
@@ -20,7 +20,7 @@ PocketPal AI is designed for high-performance native-to-javascript communication
 
 ## 🚀 2. Model Optimization Strategy
 
-The speed of PocketPal comes from a combination of specialized model formats and low-level system optimizations.
+The speed of Cortex comes from a combination of specialized model formats and low-level system optimizations.
 
 ### A. Format & Quantization
 *   **GGUF (GPT-Generated Unified Format):** The optimized binary format for LLMs that allows for efficient metadata handling and fast memory loading.
@@ -37,7 +37,7 @@ The speed of PocketPal comes from a combination of specialized model formats and
 
 ## ⚡ 3. Hardware Acceleration
 
-PocketPal AI dynamically detects device capabilities to apply hardware-specific optimizations.
+Cortex dynamically detects device capabilities to apply hardware-specific optimizations.
 
 ### **iOS (Metal Performance Shaders)**
 *   **Requirement:** iOS 18+ is prioritized for the latest Metal features.
