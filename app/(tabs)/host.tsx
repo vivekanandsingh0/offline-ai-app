@@ -1,10 +1,10 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Model, useModelStore } from '@/src/cortex/core/store/useModelStore';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { BorderRadius, Colors, Spacing } from '../../constants/theme';
-import { Model, useModelStore } from '../../store/useModelStore';
 
 export default function HostScreen() {
     const { catalog, localModels, initialize, startDownload, deleteModel, loadModel, unloadModel, activeModelId, pauseDownload, resumeDownload, cancelDownload } = useModelStore();

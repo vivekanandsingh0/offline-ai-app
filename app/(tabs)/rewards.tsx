@@ -1,9 +1,9 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { BorderRadius, Colors, Spacing } from '../../constants/theme';
 
 type RewardActivity = {
     id: string;

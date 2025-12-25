@@ -1,9 +1,9 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Message, useChatStore } from '@/src/cortex/core/store/useChatStore';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { BorderRadius, Colors, Spacing } from '../constants/theme';
-import { Message, useChatStore } from '../store/useChatStore';
 
 type Props = {
     visible: boolean;

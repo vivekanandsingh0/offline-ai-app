@@ -1,9 +1,9 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { UserClass, useUserStore } from '@/src/cortex/education/store/useUserStore';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { BorderRadius, Colors, Spacing } from '../constants/theme';
-import { UserClass, useUserStore } from '../store/useUserStore';
 
 type Props = {
     visible?: boolean;

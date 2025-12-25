@@ -1,4 +1,15 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useChatStore } from '@/src/cortex/core/store/useChatStore';
+import { useModelStore } from '@/src/cortex/core/store/useModelStore';
+import { cacheResponse, getCachedResponse } from '@/src/cortex/core/utils/ResponseCache';
+import ClassSelectionModal from '@/src/cortex/education/components/ClassSelectionModal';
+import { buildPrompt } from '@/src/cortex/education/CortexInterpreter';
+import { useUserStore } from '@/src/cortex/education/store/useUserStore';
+import ChatHistoryModal from '@/src/cortex/shared/components/ChatHistoryModal';
+import ChatSettingsModal, { ChatSettings, DEFAULT_SETTINGS } from '@/src/cortex/shared/components/ChatSettingsModal';
+import ToolSelector from '@/src/cortex/shared/components/ToolSelector';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { ToolId } from '@/src/cortex/shared/constants/ToolDefinitions';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import OfflineLLMModule from 'offline-llm-module';
@@ -16,17 +27,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import ChatHistoryModal from '../../components/ChatHistoryModal';
-import ChatSettingsModal, { ChatSettings, DEFAULT_SETTINGS } from '../../components/ChatSettingsModal'; // Added
-import ClassSelectionModal from '../../components/ClassSelectionModal';
-import ToolSelector from '../../components/ToolSelector';
-import { BorderRadius, Colors, Spacing } from '../../constants/theme';
-import { ToolId } from '../../constants/ToolDefinitions';
-import { useChatStore } from '../../store/useChatStore'; // Added
-import { useModelStore } from '../../store/useModelStore';
-import { useUserStore } from '../../store/useUserStore';
-import { buildPrompt } from '../../utils/PromptBuilder';
-import { cacheResponse, getCachedResponse } from '../../utils/ResponseCache';
 
 type Message = {
   id: string;

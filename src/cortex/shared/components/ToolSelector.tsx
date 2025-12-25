@@ -1,10 +1,10 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useUserStore } from '@/src/cortex/education/store/useUserStore';
+import { ToolId, getAvailableTools } from '@/src/cortex/shared/constants/ToolDefinitions';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ToolId, getAvailableTools } from '../constants/ToolDefinitions';
-import { BorderRadius, Colors, Spacing } from '../constants/theme';
-import { useUserStore } from '../store/useUserStore';
 
 interface ToolSelectorProps {
     activeTool: ToolId | null;

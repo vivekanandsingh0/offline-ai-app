@@ -1,4 +1,5 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef } from 'react';
 import {
@@ -11,7 +12,6 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { Colors } from '../constants/theme';
 
 export type ChatSettings = {
     temperature: number;

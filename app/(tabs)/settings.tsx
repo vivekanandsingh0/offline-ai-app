@@ -1,11 +1,11 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useChatStore } from '@/src/cortex/core/store/useChatStore';
+import { AppLanguage, AppTheme, useUserStore } from '@/src/cortex/education/store/useUserStore';
+import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { BorderRadius, Colors, Spacing } from '../../constants/theme';
-import { useChatStore } from '../../store/useChatStore';
-import { AppLanguage, AppTheme, useUserStore } from '../../store/useUserStore';
 
 export default function SettingsScreen() {
     const colorScheme = useColorScheme() ?? 'light';

@@ -3,10 +3,10 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useChatStore } from '@/src/cortex/core/store/useChatStore';
+import { useModelStore } from '@/src/cortex/core/store/useModelStore'; // Added import
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { useEffect } from 'react'; // Added import
-import { useChatStore } from '../store/useChatStore';
-import { useModelStore } from '../store/useModelStore'; // Added import
 
 export const unstable_settings = {
   anchor: '(tabs)',

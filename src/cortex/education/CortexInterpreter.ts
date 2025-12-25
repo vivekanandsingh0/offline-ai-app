@@ -1,5 +1,5 @@
-import { ToolId } from '../constants/ToolDefinitions';
-import { UserClass } from '../store/useUserStore';
+import { UserClass } from '@/src/cortex/education/store/useUserStore';
+import { ToolId } from '@/src/cortex/shared/constants/ToolDefinitions';
 
 type Message = {
     role: 'user' | 'assistant';

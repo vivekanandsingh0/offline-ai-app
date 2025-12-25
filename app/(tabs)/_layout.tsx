@@ -1,8 +1,8 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/src/cortex/shared/constants/theme';
+import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Colors } from '../../constants/theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
