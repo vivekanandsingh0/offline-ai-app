@@ -1,4 +1,4 @@
-import { useUserStore } from '@/src/cortex/education/store/useUserStore';
+import { useUserStore } from '@/src/cortex/core/store/useUserStore';
 import { ToolId, getAvailableTools } from '@/src/cortex/shared/constants/ToolDefinitions';
 import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
 import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';

@@ -4,9 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useChatStore } from '@/src/cortex/core/store/useChatStore';
-import { useModelStore } from '@/src/cortex/core/store/useModelStore'; // Added import
+import { useModelStore } from '@/src/cortex/core/store/useModelStore';
+import { useUserStore } from '@/src/cortex/core/store/useUserStore';
 import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
-import { useEffect } from 'react'; // Added import
+import { useEffect } from 'react';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -19,6 +20,7 @@ function RootLayout() {
   useEffect(() => {
     useModelStore.getState().initialize();
     useChatStore.getState().initialize();
+    useUserStore.getState().initialize();
   }, []);
 
   return (

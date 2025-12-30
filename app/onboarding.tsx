@@ -1,17 +1,17 @@
+import { CONSTITUTION } from '@/src/cortex/runtime/Constitution';
 import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
 import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnboardingScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const [mode, setMode] = useState<'use' | 'share'>('use');
 
-    const handleGetStarted = () => {
+    const handleAccept = () => {
         router.replace('/(tabs)');
     };
 
@@ -22,54 +22,31 @@ export default function OnboardingScreen() {
             <View style={styles.content}>
                 <View style={styles.topSection}>
                     <View style={[styles.logoBox, { backgroundColor: theme.primary + '10' }]}>
-                        <Ionicons name="flash-outline" size={40} color={theme.primary} />
+                        <Ionicons name="shield-checkmark-outline" size={40} color={theme.primary} />
                     </View>
                     <Text style={[styles.headline, { color: theme.text }]}>
-                        AI that works without{"\n"}installing models
+                        Cortex Constitution
                     </Text>
                     <Text style={[styles.subtext, { color: theme.secondaryText }]}>
-                        Get answers from nearby or online devices. Distributed intelligence, in your pocket.
+                        Cortex is a local-first AI runtime governed by strict ethical and safety rules.
                     </Text>
                 </View>
 
-                <View style={styles.middleSection}>
-                    <Text style={[styles.choiceTitle, { color: theme.text }]}>How would you like to start?</Text>
-
-                    <TouchableOpacity
-                        style={[styles.modeCard, mode === 'use' && { borderColor: theme.primary, borderWidth: 2, backgroundColor: theme.primary + '05' }, { backgroundColor: theme.card }]}
-                        onPress={() => setMode('use')}
-                    >
-                        <View style={[styles.iconBox, { backgroundColor: theme.primary + '20' }]}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={24} color={theme.primary} />
+                <ScrollView style={styles.constContainer}>
+                    {CONSTITUTION.principles.map((p, i) => (
+                        <View key={i} style={styles.constItem}>
+                            <Ionicons name="checkmark-circle-outline" size={20} color={theme.primary} style={{ marginRight: 12 }} />
+                            <Text style={[styles.constText, { color: theme.text }]}>{p}</Text>
                         </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.modeLabel, { color: theme.text }]}>Use AI</Text>
-                            <Text style={[styles.modeDesc, { color: theme.secondaryText }]}>Access intelligence instantly from the network.</Text>
-                        </View>
-                        {mode === 'use' && <Ionicons name="checkmark-circle" size={24} color={theme.primary} />}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.modeCard, mode === 'share' && { borderColor: theme.primary, borderWidth: 2, backgroundColor: theme.primary + '05' }, { backgroundColor: theme.card }]}
-                        onPress={() => setMode('share')}
-                    >
-                        <View style={[styles.iconBox, { backgroundColor: theme.accent + '20' }]}>
-                            <Ionicons name="server-outline" size={24} color={theme.accent} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.modeLabel, { color: theme.text }]}>Share AI & earn</Text>
-                            <Text style={[styles.modeDesc, { color: theme.secondaryText }]}>Host models and get rewarded for serving requests.</Text>
-                        </View>
-                        {mode === 'share' && <Ionicons name="checkmark-circle" size={24} color={theme.primary} />}
-                    </TouchableOpacity>
-                </View>
+                    ))}
+                </ScrollView>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={handleGetStarted}>
-                        <Text style={styles.buttonText}>Get Started</Text>
+                    <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={handleAccept}>
+                        <Text style={styles.buttonText}>Accept & Continue</Text>
                     </TouchableOpacity>
                     <Text style={[styles.disclaimer, { color: theme.secondaryText }]}>
-                        By continuing, you agree to our Terms of Service.
+                        By continuing, you agree to run intelligence locally and ethically.
                     </Text>
                 </View>
             </View>
@@ -84,71 +61,49 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         padding: Spacing.xl,
-        justifyContent: 'space-between',
     },
     topSection: {
         alignItems: 'center',
-        marginTop: 40,
+        marginTop: 20,
+        marginBottom: 30,
     },
     logoBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
+        width: 70,
+        height: 70,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: Spacing.lg,
+        marginBottom: Spacing.md,
     },
     headline: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '800',
         textAlign: 'center',
-        marginBottom: Spacing.md,
-        lineHeight: 36,
+        marginBottom: Spacing.sm,
     },
     subtext: {
-        fontSize: 16,
+        fontSize: 15,
         textAlign: 'center',
-        lineHeight: 24,
+        lineHeight: 22,
+        paddingHorizontal: 20,
+    },
+    constContainer: {
+        flex: 1,
+        marginBottom: 20,
+    },
+    constItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 16,
         paddingHorizontal: 10,
     },
-    middleSection: {
+    constText: {
+        fontSize: 15,
+        lineHeight: 22,
         flex: 1,
-        justifyContent: 'center',
-    },
-    choiceTitle: {
-        fontSize: 17,
-        fontWeight: '600',
-        marginBottom: Spacing.md,
-        textAlign: 'center',
-    },
-    modeCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: Spacing.md,
-        borderRadius: BorderRadius.lg,
-        marginBottom: Spacing.md,
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    modeLabel: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    modeDesc: {
-        fontSize: 13,
-        lineHeight: 18,
     },
     footer: {
-        marginBottom: 20,
+        marginTop: 10,
     },
     primaryButton: {
         height: 56,
@@ -156,11 +111,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: Spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
     },
     buttonText: {
         color: 'white',

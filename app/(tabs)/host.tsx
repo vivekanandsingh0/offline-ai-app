@@ -1,10 +1,13 @@
 import { Model, useModelStore } from '@/src/cortex/core/store/useModelStore';
+import { discoverPacks, downloadPack, getRemoteCatalog, KnowledgePack } from '@/src/cortex/runtime/PackManager';
 import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
 import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+
+const MOCK_CATALOG_URL = "https://raw.githubusercontent.com/vivekanandsingh0/cortex-packs/main/catalog.json";
 
 export default function HostScreen() {
     const { catalog, localModels, initialize, startDownload, deleteModel, loadModel, unloadModel, activeModelId, pauseDownload, resumeDownload, cancelDownload } = useModelStore();
@@ -15,9 +18,43 @@ export default function HostScreen() {
     const [hostOnWifi, setHostOnWifi] = useState(true);
     const [hostOnCharging, setHostOnCharging] = useState(true);
 
+    const [remotePacks, setRemotePacks] = useState<any[]>([]);
+    const [installedPacks, setInstalledPacks] = useState<KnowledgePack[]>([]);
+    const [downloadingPacks, setDownloadingPacks] = useState<string[]>([]);
+
     useEffect(() => {
         initialize();
+        refreshPacks();
     }, []);
+
+    const refreshPacks = async () => {
+        const local = await discoverPacks();
+        setInstalledPacks(local);
+
+        // Fetch remote
+        const remote = await getRemoteCatalog(MOCK_CATALOG_URL);
+        setRemotePacks(remote);
+    };
+
+    const handleDownloadPack = async (pack: any) => {
+        setDownloadingPacks(prev => [...prev, pack.id]);
+
+        // Ensure baseUrl ends correctly (it should be the directory containing the files)
+        let baseUrl = pack.url;
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
+
+        const success = await downloadPack(pack.id, baseUrl);
+
+        if (success) {
+            const local = await discoverPacks();
+            setInstalledPacks(local);
+        } else {
+            Alert.alert("Download Failed", `Could not download knowledge for ${pack.name}`);
+        }
+        setDownloadingPacks(prev => prev.filter(id => id !== pack.id));
+    };
 
     const renderModel = ({ item }: { item: Model }) => {
         const localModel = localModels[item.id];
@@ -141,6 +178,60 @@ export default function HostScreen() {
                         {renderModel({ item })}
                     </View>
                 ))}
+            </View>
+
+            {/* Knowledge Pack Manager [NEW] */}
+            <View style={styles.section}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
+                    <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Knowledge Packs</Text>
+                    <TouchableOpacity onPress={refreshPacks}>
+                        <Ionicons name="refresh" size={20} color={theme.primary} />
+                    </TouchableOpacity>
+                </View>
+
+                {remotePacks.length === 0 ? (
+                    <View style={[styles.card, { backgroundColor: theme.card, padding: 20, alignItems: 'center' }]}>
+                        <Text style={{ color: theme.secondaryText }}>Fetch packs to see available knowledge.</Text>
+                        <TouchableOpacity
+                            style={[styles.button, { backgroundColor: theme.primary, marginTop: 10 }]}
+                            onPress={refreshPacks}
+                        >
+                            <Text style={styles.buttonText}>Fetch Catalog</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    remotePacks.map(pack => {
+                        const isInstalled = installedPacks.some(p => p.id === pack.id);
+                        const isDownloading = downloadingPacks.includes(pack.id);
+
+                        return (
+                            <View key={pack.id} style={[styles.card, { backgroundColor: theme.card }]}>
+                                <View style={styles.cardHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.modelName, { color: theme.text }]}>{pack.name}</Text>
+                                        <Text style={[styles.modelDesc, { color: theme.secondaryText }]}>{pack.keywords.join(', ')}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.actionRow}>
+                                    {isInstalled ? (
+                                        <View style={[styles.badge, { backgroundColor: theme.accent + '20' }]}>
+                                            <Text style={[styles.badgeText, { color: theme.accent }]}>Installed</Text>
+                                        </View>
+                                    ) : isDownloading ? (
+                                        <ActivityIndicator size="small" color={theme.primary} />
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={[styles.button, { backgroundColor: theme.primary }]}
+                                            onPress={() => handleDownloadPack(pack)}
+                                        >
+                                            <Text style={styles.buttonText}>Download</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        );
+                    })
+                )}
             </View>
 
             {/* Hosting Rules */}

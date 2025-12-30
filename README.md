@@ -1,18 +1,22 @@
-# Cortex AI 🚀
+# Cortex Runtime
 
-Cortex is a **fully offline**, privacy-focused AI educational assistant built with **React Native (Expo)**. It runs Large Language Models (LLMs) directly on your Android device using a custom native C++ bridge to **llama.cpp**, ensuring zero data leaves your phone.
+Cortex is a **fully offline**, constitution-governed local AI runtime built with **React Native (Expo)**. It enables decentralized intelligence that runs directly on your device using a custom native C++ bridge to **llama.cpp**.
 
-> **Status**: Active Development (Phase 3 - Education Module & Packs)
+> **Status**: Active Development (Cortex-First Refactor)
+
+## 🏛️ The Cortex Constitution
+Cortex is not just an app; it's a runtime governed by a foundational charter. It prioritizes local intelligence, user sovereignty, and ethical AI behavior. Every generation is validated against constitutional safety rules.
+
+## 🧩 Modularity & Knowledge Packs
+Cortex is domain-agnostic. All specialized knowledge (Syllabus, Subjects, Professional Data) is stored in external, optional **Knowledge Packs**.
+- **Constitutional Mode**: Default state for general assistance.
+- **Knowledge-Grounded Mode**: Triggered when a validated pack is discovered.
 
 ## 🌟 Key Features
-
-### 🧠 Offline AI Inference
-- **Zero Internet Required**: Chat with AI anywhere, anytime.
-- **Local LLMs**: Supports GGUF models (e.g., Llama 3.2, Qwen 2.5, Mistral).
-- **Capability Modes**:
-  - **Fast**: Uses optimized small models (e.g., Qwen 2.5 3B).
-  - **Balanced**: Standard performance (e.g., Llama 3.2 3B).
-  - **Accurate**: High-precision models (e.g., Mistral 7B).
+- **Zero Cloud**: 100% offline inference and prompt processing.
+- **Dynamic Knowledge**: Discovery of subject-based packs at runtime.
+- **Validation Engine**: Post-generation safety and constitutional checks.
+- **Minimalist Design**: A clean, distraction-free interface focused on intelligence.
 
 ### 💬 Chat Experience
 - **Persistent History**: Auto-saves conversations. View and restore past chats.

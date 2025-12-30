@@ -1,5 +1,5 @@
 import { useChatStore } from '@/src/cortex/core/store/useChatStore';
-import { AppLanguage, AppTheme, useUserStore } from '@/src/cortex/education/store/useUserStore';
+import { AppTheme, useUserStore } from '@/src/cortex/core/store/useUserStore';
 import { BorderRadius, Colors, Spacing } from '@/src/cortex/shared/constants/theme';
 import { useColorScheme } from '@/src/cortex/shared/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,20 +11,14 @@ export default function SettingsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
-    const { theme: appTheme, language, setTheme, setLanguage } = useUserStore();
-    const { startNewSession, saveCurrentSession, deleteSession, sessions } = useChatStore();
+    const { theme: appTheme, setTheme } = useUserStore();
+    const { startNewSession, deleteSession, sessions } = useChatStore();
 
     const [advancedOpen, setAdvancedOpen] = useState(false);
 
     const toggleTheme = () => {
         const next: AppTheme = appTheme === 'system' ? 'light' : appTheme === 'light' ? 'dark' : 'system';
         setTheme(next);
-    };
-
-    const toggleLanguage = () => {
-        const langs: AppLanguage[] = ['English', 'Hindi', 'Spanish', 'French'];
-        const nextIdx = (langs.indexOf(language) + 1) % langs.length;
-        setLanguage(langs[nextIdx]);
     };
 
     const handleClearHistory = () => {
@@ -37,11 +31,10 @@ export default function SettingsScreen() {
                     text: "Delete All",
                     style: "destructive",
                     onPress: async () => {
-                        // Delete all sessions
                         for (const s of sessions) {
                             await deleteSession(s.id);
                         }
-                        startNewSession(); // Reset current
+                        startNewSession();
                     }
                 }
             ]
@@ -77,7 +70,7 @@ export default function SettingsScreen() {
             </View>
 
             <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Preferences</Text>
+                <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Cortex Preference</Text>
                 <View style={[styles.card, { backgroundColor: theme.card }]}>
                     <SettingItem
                         icon="moon-outline"
@@ -85,34 +78,19 @@ export default function SettingsScreen() {
                         value={appTheme ? appTheme.charAt(0).toUpperCase() + appTheme.slice(1) : 'System'}
                         onPress={toggleTheme}
                     />
-                    <SettingItem icon="notifications-outline" label="Notifications" />
-                    <SettingItem
-                        icon="language-outline"
-                        label="Language"
-                        value={language}
-                        onPress={toggleLanguage}
-                    />
-                </View>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Hosting</Text>
-                <View style={[styles.card, { backgroundColor: theme.card }]}>
-                    <SettingItem icon="wifi-outline" label="Only on Wi-Fi" value={true} type="switch" />
-                    <SettingItem icon="battery-charging-outline" label="Only when charging" value={true} type="switch" />
+                    <SettingItem icon="language-outline" label="Default Language" value="English" />
                 </View>
             </View>
 
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.secondaryText }]}>Privacy & Data</Text>
                 <View style={[styles.card, { backgroundColor: theme.card }]}>
-                    <SettingItem icon="shield-checkmark-outline" label="Privacy Policy" />
-                    <SettingItem icon="document-text-outline" label="Terms of Service" />
                     <SettingItem
                         icon="trash-outline"
                         label="Clear Chat History"
                         onPress={handleClearHistory}
                     />
+                    <SettingItem icon="document-text-outline" label="Cortex Constitution" />
                 </View>
             </View>
 
@@ -127,16 +105,14 @@ export default function SettingsScreen() {
 
                 {advancedOpen && (
                     <View style={[styles.card, { backgroundColor: theme.card, marginTop: Spacing.sm }]}>
-                        <SettingItem icon="podium-outline" label="Network Info" />
-                        <SettingItem icon="bug-outline" label="Debug Status" value="Healthy" />
-                        <SettingItem icon="finger-print-outline" label="Anonymous ID" value="0x...492" />
-                        <SettingItem icon="refresh-outline" label="Reset ID" />
+                        <SettingItem icon="bug-outline" label="Runtime Status" value="Healthy" />
+                        <SettingItem icon="cube-outline" label="Active Model" value="Local" />
                     </View>
                 )}
             </View>
 
             <View style={styles.footer}>
-                <Text style={[styles.version, { color: theme.secondaryText }]}>Version 1.0.0 (342)</Text>
+                <Text style={[styles.version, { color: theme.secondaryText }]}>Cortex Runtime v1.0.0</Text>
             </View>
 
             <View style={{ height: 40 }} />
