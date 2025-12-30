@@ -75,9 +75,9 @@ Java_expo_modules_offlinellmmodule_OfflineLLMModule_loadModelNative(
 
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = 1024; // Strict Cortex limit
-    ctx_params.n_batch = 64; 
+    ctx_params.n_batch = 128; // Larger batch for faster ingestion
     ctx_params.n_threads = 4;
-    ctx_params.n_threads_batch = 4;
+    ctx_params.n_threads_batch = 8; // Double threads for ingestion boost
     
     ctx = llama_init_from_model(model, ctx_params);
 

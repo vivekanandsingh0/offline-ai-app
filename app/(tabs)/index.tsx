@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 
 type Message = {
   id: string;
@@ -237,10 +238,15 @@ export default function ChatScreen() {
                   {item.role === 'assistant' && item.pending && !item.content ? (
                     <TypingIndicator />
                   ) : (
-                    <Text style={[
-                      styles.msgText,
-                      item.role === 'user' ? { color: '#FFF' } : { color: theme.text }
-                    ]}>{item.content}</Text>
+                    <Markdown style={{
+                      body: {
+                        color: item.role === 'user' ? '#FFF' : theme.text,
+                        fontSize: 16,
+                      },
+                      paragraph: {
+                        marginBottom: 0,
+                      }
+                    }}>{item.content}</Markdown>
                   )}
                 </View>
 

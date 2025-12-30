@@ -10,6 +10,7 @@ export interface KnowledgePack {
     strict: boolean;
     keywords: string[];
     knowledgeContent: string;
+    compactContent?: string;
 }
 
 const PACKS_ROOT = FileSystem.documentDirectory + 'knowledge-packs/';
@@ -33,9 +34,11 @@ export const discoverPacks = async (forceRefresh = false): Promise<KnowledgePack
             const folderPath = PACKS_ROOT + folder + '/';
             const packJsonPath = folderPath + 'pack.json';
             const knowledgeMdPath = folderPath + 'knowledge.md';
+            const compactMdPath = folderPath + 'knowledge.compact.md';
 
             const jsonInfo = await FileSystem.getInfoAsync(packJsonPath);
             const mdInfo = await FileSystem.getInfoAsync(knowledgeMdPath);
+            const compactInfo = await FileSystem.getInfoAsync(compactMdPath);
 
             console.log(`[PackManager] Checking folder ${folder}: json=${jsonInfo.exists}, md=${mdInfo.exists}`);
 
@@ -43,13 +46,15 @@ export const discoverPacks = async (forceRefresh = false): Promise<KnowledgePack
                 try {
                     const jsonContent = await FileSystem.readAsStringAsync(packJsonPath);
                     const mdContent = await FileSystem.readAsStringAsync(knowledgeMdPath);
+                    const compactContent = compactInfo.exists ? await FileSystem.readAsStringAsync(compactMdPath) : undefined;
                     const config = JSON.parse(jsonContent);
 
                     console.log(`[PackManager] Loaded pack: ${config.id} with ${config.keywords?.length || 0} keywords`);
 
                     packs.push({
                         ...config,
-                        knowledgeContent: mdContent
+                        knowledgeContent: mdContent,
+                        compactContent
                     });
                 } catch (e) {
                     console.error(`[PackManager] Failed to load pack in ${folder}:`, e);
@@ -104,6 +109,18 @@ export const downloadPack = async (packId: string, baseUrl: string): Promise<boo
         const mdContent = await mdRes.text();
         await FileSystem.writeAsStringAsync(packDir + 'knowledge.md', mdContent);
 
+        // Download knowledge.compact.md (New)
+        console.log(`[PackManager] Fetching knowledge.compact.md...`);
+        try {
+            const compactRes = await fetch(`${baseUrl}/knowledge.compact.md`);
+            if (compactRes.ok) {
+                const compactContent = await compactRes.text();
+                await FileSystem.writeAsStringAsync(packDir + 'knowledge.compact.md', compactContent);
+            }
+        } catch (e) {
+            console.log(`[PackManager] No compact knowledge found for ${packId}, using full only.`);
+        }
+
         console.log(`[PackManager] Successfully installed pack: ${packId}`);
         cachedPacks = null; // Invalidate cache
         return true;
@@ -111,6 +128,25 @@ export const downloadPack = async (packId: string, baseUrl: string): Promise<boo
         console.error(`[PackManager] Failed to download pack ${packId}:`, e);
         return false;
     }
+};
+
+/**
+ * Simple sectional extraction from Markdown.
+ * Looks for ## or ### headings matching query keywords.
+ */
+export const extractRelevantSection = (fullKnowledge: string, query: string): string => {
+    const sections = fullKnowledge.split(/(?=\n#{2,3}\s)/);
+    const queryWords = query.toLowerCase().split(/\W+/);
+
+    // Find the first section that mentions a significant word from the query
+    for (const section of sections) {
+        const firstLine = section.split('\n')[0].toLowerCase();
+        if (queryWords.some(word => word.length > 3 && firstLine.includes(word))) {
+            return section.trim();
+        }
+    }
+
+    return ""; // Fallback to empty if no specific section matches
 };
 
 /**
