@@ -2,7 +2,7 @@
 
 Cortex is a **fully offline**, privacy-focused AI educational assistant built with **React Native (Expo)**. It runs Large Language Models (LLMs) directly on your Android device using a custom native C++ bridge to **llama.cpp**, ensuring zero data leaves your phone.
 
-> **Status**: Active Development (Phase 2 - Feature Complete)
+> **Status**: Active Development (Phase 3 - Education Module & Packs)
 
 ## 🌟 Key Features
 

@@ -1,5 +1,8 @@
 import { UserClass } from '@/src/cortex/education/store/useUserStore';
 import { ToolId } from '@/src/cortex/shared/constants/ToolDefinitions';
+import { getClassContext } from './config/classRules';
+import { HARD_SAFETY_PROMPT } from './config/safety';
+import { getToolPrompt } from './config/tools';
 
 type Message = {
     role: 'user' | 'assistant';
@@ -41,120 +44,45 @@ OUTPUT RULES:
 - If unsure, ask a simple clarification question.
 `.trim();
 
-// 8. HARD SAFETY PROMPT (LLAMA NEEDS THIS)
-const HARD_SAFETY_PROMPT = `
-SAFETY RULES:
-You must NOT answer questions about:
-- Sexual or adult content
-- Violence or weapons
-- Drugs or illegal activities
-- Politics or religion
-- Medical advice
-- Self-harm
+// 9. KNOWLEDGE INGESTION (STEP 3.4)
+const loadKnowledgeIfAvailable = (cls: UserClass | null, subject: string | null, input: string): { content: string | null, isSyllabusMatch: boolean } => {
+    if (!cls) return { content: null, isSyllabusMatch: false };
 
-If asked:
-- Say the topic is not appropriate for school students.
-- Suggest asking a parent or teacher.
-`.trim();
+    // For now, we have a hardcoded check for our first pack
+    // In the future, this will scan the packs directory and use RAG or keyword search
+    if (cls === '6' && (subject === 'science' || !subject)) {
+        const keywords = ['plant', 'photosynthesis', 'root', 'leaf', 'stem'];
+        const matches = keywords.some(k => input.toLowerCase().includes(k));
 
-// 6. CLASS CONTEXT PROMPT (MANDATORY)
-const getClassContext = (cls: UserClass | null): string => {
-    if (!cls) return "";
-    return `
-STUDENT CONTEXT:
-- Class: ${cls}
-- Subject: General
-
-STRICT RULES:
-- Do NOT include content above Class ${cls}.
-- If the topic belongs to a higher class, give only a very basic introduction.
-- Use examples suitable for a Class ${cls} student.
-`.trim();
-};
-
-// 7. TOOL PROMPTS (LLAMA-TUNED)
-const getToolPrompt = (tool: ToolId | null, cls: UserClass | null): string => {
-    if (!cls) return "";
-
-    switch (tool) {
-        case 'explain':
-            return `
-🧠 TOOL: EXPLAIN TOPIC
-ROLE: You are explaining a school topic to a Class ${cls} student.
-TASK: Explain the given topic clearly and simply.
-RULES:
-- Start with a simple definition.
-- Explain step by step.
-- Use bullet points.
-- Maximum 6–8 points.
-- No advanced terms unless appropriate for Class ${cls}.
-If the topic is above Class ${cls}:
-- Say so politely.
-- Give only a basic idea.
-`.trim();
-
-        case 'notes':
-            return `
-📝 TOOL: MAKE SHORT NOTES
-ROLE: You are helping a student revise for exams.
-TASK: Create short revision notes for a Class ${cls} student.
-FORMAT:
-- Bullet points only
-- Clear keywords
-- No paragraphs
-- Maximum 120 words
-RULES:
-- Focus only on exam-relevant points.
-- Do not add extra information.
-`.trim();
-
-        case 'practice':
-            return `
-❓ TOOL: PRACTICE QUESTIONS
-ROLE: You are a teacher preparing practice questions.
-TASK: Create practice questions for a Class ${cls} student.
-FORMAT:
-- 2 easy questions
-- 2 medium questions
-- 1 slightly challenging question
-RULES:
-- Do NOT give answers.
-- Keep questions strictly syllabus-based.
-`.trim();
-
-        case 'homework':
-            return `
-🧩 TOOL: HOMEWORK HELPER
-ROLE: You are guiding a student to solve homework.
-TASK: Explain how to think about the problem step by step.
-STRICT RULES:
-- Do NOT give the final answer.
-- Give hints and reasoning.
-- Encourage the student to try.
-ONLY IF explicitly asked AND Class >= 9:
-- Provide the final answer with explanation.
-`.trim();
-
-        case 'translate':
-            return `
-🌐 TOOL: SIMPLIFY / TRANSLATE
-ROLE: You help students understand text easily.
-TASK: Simplify or translate the text for a Class ${cls} student.
-RULES:
-- Use simple words.
-- Short sentences.
-- Keep the meaning correct.
-`.trim();
-
-        default:
-            return "TASK: Answer the student's question helpfully via chat.";
+        if (matches) {
+            return {
+                content: `
+KNOWLEDGE BASE (CLASS 6 SCIENCE):
+- Plants have stems, roots, and leaves.
+- Photosynthesis is the process by which plants make food.
+- Water and minerals are absorbed by roots.
+- Leaves are the food factories of plants.
+`.trim(),
+                isSyllabusMatch: true
+            };
+        }
     }
+
+    return { content: null, isSyllabusMatch: false };
 };
 
 export const buildPrompt = ({ userClass, activeTool, input, modelName, history, customSystemPrompt }: BuildPromptOptions): string => {
     const isLlama3 = modelName.toLowerCase().includes('llama 3') || modelName.toLowerCase().includes('llama-3');
     const isQwen = modelName.toLowerCase().includes('qwen');
     const isTinyLlama = modelName.toLowerCase().includes('tinyllama');
+
+    // Load Knowledge & Check Syllabus (Phase 3.4 & 3.5)
+    const { content: knowledge, isSyllabusMatch } = loadKnowledgeIfAvailable(userClass, null, input);
+
+    // Hard Refusal for Out-of-Syllabus (Phase 3.5)
+    if (activeTool === 'explain' && userClass === '6' && !isSyllabusMatch) {
+        return "I'm sorry, but this topic is not part of your current Class 6 Science syllabus. Please ask something related to your school subjects!";
+    }
 
     // Construct the System Prompt
     // LOGIC: If customSystemPrompt is provided, it replaces MASTER_SYSTEM_PROMPT (Persona).
@@ -163,7 +91,8 @@ export const buildPrompt = ({ userClass, activeTool, input, modelName, history, 
         customSystemPrompt?.trim() ? customSystemPrompt.trim() : MASTER_SYSTEM_PROMPT,
         HARD_SAFETY_PROMPT,
         getClassContext(userClass),
-        getToolPrompt(activeTool, userClass)
+        getToolPrompt(activeTool, userClass),
+        knowledge ? `CONTEXT INFORMATION:\n${knowledge}` : ""
     ].filter(line => line.length > 0);
 
     const systemPrompt = systemPromptLines.join("\n\n");
